@@ -351,3 +351,117 @@ XMFLOAT3 CHeightMapGridMesh::OnGetNormal(int x, int z, void* pContext)
 	CHeightMapImage* pHeightMapImage = (CHeightMapImage*)pContext;
 	return(pHeightMapImage->GetHeightMapNormal(x, z));
 }
+/////////////////////////////////////////////////////////////////////////////////////////////////
+//
+namespace
+{
+	void ReadUnityBinaryString(FILE* pFile, char* pstrToken, BYTE* pnStrLength)
+	{
+		fread(pnStrLength, sizeof(BYTE), 1, pFile);
+		fread(pstrToken, sizeof(char), *pnStrLength, pFile);
+		pstrToken[*pnStrLength] = '\0';
+	}
+}
+
+CBinaryMeshFromFile::CBinaryMeshFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, const char* pstrFileName)
+{
+	FILE* pFile = NULL;
+	fopen_s(&pFile, pstrFileName, "rb");
+	if (!pFile) return;
+
+	char pstrToken[256] = { '\0' };
+	BYTE nStrLength = 0;
+	UINT nReads = 0;
+	BoundingBox xmBoundingBox;
+
+	ReadUnityBinaryString(pFile, pstrToken, &nStrLength);
+	nReads = (UINT)fread(&xmBoundingBox.Center, sizeof(float), 3, pFile);
+	nReads = (UINT)fread(&xmBoundingBox.Extents, sizeof(float), 3, pFile);
+
+	ReadUnityBinaryString(pFile, pstrToken, &nStrLength);
+	nReads = (UINT)fread(&m_nVertices, sizeof(int), 1, pFile);
+	XMFLOAT3* pxmf3Positions = new XMFLOAT3[m_nVertices];
+	nReads = (UINT)fread(pxmf3Positions, sizeof(float), 3 * m_nVertices, pFile);
+
+	ReadUnityBinaryString(pFile, pstrToken, &nStrLength);
+	UINT nNormals = 0;
+	nReads = (UINT)fread(&nNormals, sizeof(int), 1, pFile);
+	XMFLOAT3* pxmf3Normals = new XMFLOAT3[nNormals];
+	nReads = (UINT)fread(pxmf3Normals, sizeof(float), 3 * nNormals, pFile);
+
+	ReadUnityBinaryString(pFile, pstrToken, &nStrLength);
+	UINT nTextureCoords = 0;
+	nReads = (UINT)fread(&nTextureCoords, sizeof(int), 1, pFile);
+	XMFLOAT2* pxmf2TextureCoords = new XMFLOAT2[nTextureCoords];
+	nReads = (UINT)fread(pxmf2TextureCoords, sizeof(float), 2 * nTextureCoords, pFile);
+	delete[] pxmf2TextureCoords;
+
+	ReadUnityBinaryString(pFile, pstrToken, &nStrLength);
+	nReads = (UINT)fread(&m_nIndices, sizeof(int), 1, pFile);
+	UINT* pnIndices = new UINT[m_nIndices];
+	nReads = (UINT)fread(pnIndices, sizeof(UINT), m_nIndices, pFile);
+	fclose(pFile);
+
+	m_nType = VERTEXT_POSITION | VERTEXT_NORMAL;
+	m_d3dPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+	m_pd3dPositionBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pxmf3Positions, sizeof(XMFLOAT3) * m_nVertices, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dPositionUploadBuffer);
+	m_d3dPositionBufferView.BufferLocation = m_pd3dPositionBuffer->GetGPUVirtualAddress();
+	m_d3dPositionBufferView.StrideInBytes = sizeof(XMFLOAT3);
+	m_d3dPositionBufferView.SizeInBytes = sizeof(XMFLOAT3) * m_nVertices;
+
+	m_pd3dNormalBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pxmf3Normals, sizeof(XMFLOAT3) * nNormals, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dNormalUploadBuffer);
+	m_d3dNormalBufferView.BufferLocation = m_pd3dNormalBuffer->GetGPUVirtualAddress();
+	m_d3dNormalBufferView.StrideInBytes = sizeof(XMFLOAT3);
+	m_d3dNormalBufferView.SizeInBytes = sizeof(XMFLOAT3) * nNormals;
+
+	m_pd3dIndexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pnIndices, sizeof(UINT) * m_nIndices, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_INDEX_BUFFER, &m_pd3dIndexUploadBuffer);
+	m_d3dIndexBufferView.BufferLocation = m_pd3dIndexBuffer->GetGPUVirtualAddress();
+	m_d3dIndexBufferView.Format = DXGI_FORMAT_R32_UINT;
+	m_d3dIndexBufferView.SizeInBytes = sizeof(UINT) * m_nIndices;
+
+	delete[] pxmf3Positions;
+	delete[] pxmf3Normals;
+	delete[] pnIndices;
+}
+
+CBinaryMeshFromFile::~CBinaryMeshFromFile()
+{
+	if (m_pd3dPositionBuffer) m_pd3dPositionBuffer->Release();
+	if (m_pd3dPositionUploadBuffer) m_pd3dPositionUploadBuffer->Release();
+	if (m_pd3dNormalBuffer) m_pd3dNormalBuffer->Release();
+	if (m_pd3dNormalUploadBuffer) m_pd3dNormalUploadBuffer->Release();
+	if (m_pd3dIndexBuffer) m_pd3dIndexBuffer->Release();
+	if (m_pd3dIndexUploadBuffer) m_pd3dIndexUploadBuffer->Release();
+}
+
+void CBinaryMeshFromFile::ReleaseUploadBuffers()
+{
+	if (m_pd3dPositionUploadBuffer) m_pd3dPositionUploadBuffer->Release();
+	m_pd3dPositionUploadBuffer = NULL;
+	if (m_pd3dNormalUploadBuffer) m_pd3dNormalUploadBuffer->Release();
+	m_pd3dNormalUploadBuffer = NULL;
+	if (m_pd3dIndexUploadBuffer) m_pd3dIndexUploadBuffer->Release();
+	m_pd3dIndexUploadBuffer = NULL;
+}
+
+void CBinaryMeshFromFile::Render(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	pd3dCommandList->IASetPrimitiveTopology(m_d3dPrimitiveTopology);
+	D3D12_VERTEX_BUFFER_VIEW pVertexBufferViews[2] = { m_d3dPositionBufferView, m_d3dNormalBufferView };
+	pd3dCommandList->IASetVertexBuffers(m_nSlot, 2, pVertexBufferViews);
+	if (m_pd3dIndexBuffer)
+	{
+		pd3dCommandList->IASetIndexBuffer(&m_d3dIndexBufferView);
+		pd3dCommandList->DrawIndexedInstanced(m_nIndices, 1, 0, 0, 0);
+	}
+	else
+	{
+		pd3dCommandList->DrawInstanced(m_nVertices, 1, m_nOffset, 0);
+	}
+}
+
+void CBinaryMeshFromFile::Render(ID3D12GraphicsCommandList* pd3dCommandList, int nSubSet)
+{
+	Render(pd3dCommandList);
+}

@@ -5,6 +5,29 @@
 #include "stdafx.h"
 #include "Scene.h"
 
+namespace
+{
+	float TerrainY(CHeightMapTerrain* pTerrain, float x, float z, float fOffset)
+	{
+		return((pTerrain) ? (pTerrain->GetHeight(x, z) + fOffset) : fOffset);
+	}
+
+	CGameObject* CreateHouseObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
+		const char* pstrMeshFile, float x, float z, float fScale, float fYaw, CHeightMapTerrain* pTerrain)
+	{
+		CGameObject* pHouseObject = new CGameObject();
+		pHouseObject->SetMesh(new CBinaryMeshFromFile(pd3dDevice, pd3dCommandList, pstrMeshFile));
+		pHouseObject->m_nMaterials = 1;
+		pHouseObject->m_ppMaterials = new CMaterial * [1];
+		pHouseObject->m_ppMaterials[0] = new CMaterial();
+		pHouseObject->m_ppMaterials[0]->SetPseudoLightingShader();
+		pHouseObject->SetScale(fScale, fScale, fScale);
+		pHouseObject->Rotate(0.0f, fYaw, 0.0f);
+		pHouseObject->SetPosition(x, TerrainY(pTerrain, x, z, 4.0f), z);
+		return(pHouseObject);
+	}
+}
+
 CScene::CScene()
 {
 }
@@ -22,37 +45,41 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	XMFLOAT3 xmf3TerrainScale(8.0f, 2.0f, 8.0f);
 	m_pTerrain = new CHeightMapTerrain(pd3dDevice, pd3dCommandList, _T("Image/HeightMap.raw"), 257, 257, 257, 257, xmf3TerrainScale);
 
-	m_nGameObjects = 3;
+	m_nGameObjects = 7;
 	m_ppGameObjects = new CGameObject * [m_nGameObjects];
 
 	CApacheObject *pApacheObject = new CApacheObject();
 	CGameObject *pGameObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, L"Model/Apache.txt");
 	pApacheObject->SetChild(pGameObject);
 	pApacheObject->OnInitialize();
-	pApacheObject->SetPosition(-50.0f, 0.0f, 150.0f);
 	pApacheObject->SetScale(1.5f, 1.5f, 1.5f);
 	pApacheObject->Rotate(0.0f, 90.0f, 0.0f);
+	pApacheObject->SetPosition(620.0f, TerrainY(m_pTerrain, 620.0f, 760.0f, 45.0f), 760.0f);
 	m_ppGameObjects[0] = pApacheObject;
 
 	CSuperCobraObject* pSuperCobraObject = new CSuperCobraObject();
 	pGameObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, L"Model/SuperCobra.txt");
 	pSuperCobraObject->SetChild(pGameObject);
 	pSuperCobraObject->OnInitialize();
-	pSuperCobraObject->SetPosition(60.0f, 0.0f, 50.0f);
 	pSuperCobraObject->SetScale(8.0f, 8.0f, 8.0f);
 	pSuperCobraObject->Rotate(0.0f, -90.0f, 0.0f);
+	pSuperCobraObject->SetPosition(760.0f, TerrainY(m_pTerrain, 760.0f, 900.0f, 45.0f), 900.0f);
 	m_ppGameObjects[1] = pSuperCobraObject;
 
 	CHummerObject* pHummerObject = new CHummerObject();
 	pGameObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, L"Model/M26.txt");
 	pHummerObject->SetChild(pGameObject);
 	pHummerObject->OnInitialize();
-	pHummerObject->SetPosition(160.0f, 0.0f, 150.0f);
 	pHummerObject->SetScale(8.0f, 8.0f, 8.0f);
 	pHummerObject->Rotate(0.0f, -90.0f, 0.0f);
+	pHummerObject->SetPosition(900.0f, TerrainY(m_pTerrain, 900.0f, 720.0f, 14.0f), 720.0f);
 	m_ppGameObjects[2] = pHummerObject;
 
-	CreateShaderVariables(pd3dDevice, pd3dCommandList);
+	m_ppGameObjects[3] = CreateHouseObject(pd3dDevice, pd3dCommandList, "Models/Meshes/ams_house3.bin", 920.0f, 1040.0f, 12.0f, 20.0f, m_pTerrain);
+	m_ppGameObjects[4] = CreateHouseObject(pd3dDevice, pd3dCommandList, "Models/Meshes/ams_house4.bin", 1040.0f, 920.0f, 12.0f, -35.0f, m_pTerrain);
+	m_ppGameObjects[5] = CreateHouseObject(pd3dDevice, pd3dCommandList, "Models/Meshes/ams_house5.bin", 1120.0f, 1120.0f, 12.0f, 55.0f, m_pTerrain);
+	m_ppGameObjects[6] = CreateHouseObject(pd3dDevice, pd3dCommandList, "Models/Meshes/ams_house6.bin", 780.0f, 1120.0f, 12.0f, -10.0f, m_pTerrain);
+CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
 
 void CScene::ReleaseObjects()
