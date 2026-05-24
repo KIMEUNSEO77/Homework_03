@@ -1,12 +1,8 @@
-//-----------------------------------------------------------------------------
-// File: CGameObject.cpp
-//-----------------------------------------------------------------------------
+// Mesh.cpp
 
 #include "stdafx.h"
 #include "Mesh.h"
 
-/////////////////////////////////////////////////////////////////////////////////////////////////
-//
 CMeshLoadInfo::~CMeshLoadInfo()
 {
 	if (m_pxmf3Positions) delete[] m_pxmf3Positions;
@@ -24,8 +20,8 @@ CMeshLoadInfo::~CMeshLoadInfo()
 	}
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////
-//
+// -----------------------------------------------------------------------------------------------------------------
+
 CMeshFromFile::CMeshFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CMeshLoadInfo* pMeshInfo)
 {
 	m_nVertices = pMeshInfo->m_nVertices;
@@ -108,8 +104,8 @@ void CMeshFromFile::Render(ID3D12GraphicsCommandList* pd3dCommandList, int nSubS
 	}
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////
-//
+// -----------------------------------------------------------------------------------------------------------------
+
 CMeshIlluminatedFromFile::CMeshIlluminatedFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CMeshLoadInfo* pMeshInfo) : CMeshFromFile::CMeshFromFile(pd3dDevice, pd3dCommandList, pMeshInfo)
 {
 	m_pd3dNormalBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pMeshInfo->m_pxmf3Normals, sizeof(XMFLOAT3) * m_nVertices, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dNormalUploadBuffer);
@@ -148,8 +144,8 @@ void CMeshIlluminatedFromFile::Render(ID3D12GraphicsCommandList* pd3dCommandList
 	}
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////
-//
+// -----------------------------------------------------------------------------------------------------------------
+
 CHeightMapImage::CHeightMapImage(LPCTSTR pFileName, int nWidth, int nLength, XMFLOAT3 xmf3Scale)
 {
 	m_nWidth = nWidth;
@@ -235,6 +231,8 @@ float CHeightMapImage::GetHeight(float fx, float fz)
 	float fBottomHeight = fBottomLeft * (1.0f - fxPercent) + fBottomRight * fxPercent;
 	return(fBottomHeight * (1.0f - fzPercent) + fTopHeight * fzPercent);
 }
+
+// -----------------------------------------------------------------------------------------------------------------
 
 CHeightMapGridMesh::CHeightMapGridMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
 	int xStart, int zStart, int nWidth, int nLength, XMFLOAT3 xmf3Scale, void* pContext) : CMesh()
@@ -351,8 +349,9 @@ XMFLOAT3 CHeightMapGridMesh::OnGetNormal(int x, int z, void* pContext)
 	CHeightMapImage* pHeightMapImage = (CHeightMapImage*)pContext;
 	return(pHeightMapImage->GetHeightMapNormal(x, z));
 }
-/////////////////////////////////////////////////////////////////////////////////////////////////
-//
+
+// -----------------------------------------------------------------------------------------------------------------
+
 namespace
 {
 	void ReadUnityBinaryString(FILE* pFile, char* pstrToken, BYTE* pnStrLength)

@@ -1,13 +1,11 @@
-//-----------------------------------------------------------------------------
-// File: CGameObject.cpp
-//-----------------------------------------------------------------------------
+// CGameObject.cpp
 
 #include "stdafx.h"
 #include "Object.h"
 #include "Shader.h"
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
+
+// CMaterial
 CShader* CMaterial::m_pPseudoLightingShader = NULL;
 
 CMaterial::CMaterial()
@@ -37,8 +35,8 @@ void CMaterial::PrepareShaders(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 	m_pPseudoLightingShader->CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
+// --------------------------------------------------------------------------------------------------
+// CGameObject
 CGameObject::CGameObject()
 {
 	m_xmf4x4Transform = Matrix4x4::Identity();
@@ -272,8 +270,7 @@ void CGameObject::Rotate(XMFLOAT4* pxmf4Quaternion)
 	UpdateTransform(NULL);
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
+
 #define _WITH_DEBUG_FRAME_HIERARCHY
 
 CMeshLoadInfo *CGameObject::LoadMeshInfoFromFile(wifstream& InFile)
@@ -576,8 +573,9 @@ CGameObject *CGameObject::LoadGeometryFromFile(ID3D12Device *pd3dDevice, ID3D12G
 	return(pGameObject);
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-//
+// --------------------------------------------------------------------------------------------------
+// CRotatingObject
+
 CRotatingObject::CRotatingObject()
 {
 	m_xmf3RotationAxis = XMFLOAT3(0.0f, 1.0f, 0.0f);
@@ -600,8 +598,8 @@ void CRotatingObject::Render(ID3D12GraphicsCommandList *pd3dCommandList, CCamera
 	CGameObject::Render(pd3dCommandList, pCamera);
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-//
+// --------------------------------------------------------------------------------------------------
+// CRevolvingObject
 CRevolvingObject::CRevolvingObject()
 {
 	m_xmf3RevolutionAxis = XMFLOAT3(1.0f, 0.0f, 0.0f);
@@ -620,8 +618,9 @@ void CRevolvingObject::Animate(float fTimeElapsed, XMFLOAT4X4 *pxmf4x4Parent)
 	CGameObject::Animate(fTimeElapsed, pxmf4x4Parent);
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-//
+// --------------------------------------------------------------------------------------------------
+// CApacheObject
+
 CApacheObject::CApacheObject()
 {
 }
@@ -654,8 +653,9 @@ void CApacheObject::Animate(float fTimeElapsed, XMFLOAT4X4 *pxmf4x4Parent)
 	CGameObject::Animate(fTimeElapsed, pxmf4x4Parent);
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-//
+// --------------------------------------------------------------------------------------------------
+// CSuperCobraObject
+
 CSuperCobraObject::CSuperCobraObject()
 {
 }
@@ -686,8 +686,9 @@ void CSuperCobraObject::Animate(float fTimeElapsed, XMFLOAT4X4 *pxmf4x4Parent)
 	CGameObject::Animate(fTimeElapsed, pxmf4x4Parent);
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-//
+// --------------------------------------------------------------------------------------------------
+// CHummerObject
+
 CHummerObject::CHummerObject()
 {
 }
@@ -697,8 +698,8 @@ CHummerObject::~CHummerObject()
 }
 
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-//
+// --------------------------------------------------------------------------------------------------
+// CHeightMapTerrain
 CHeightMapTerrain::CHeightMapTerrain(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
 	LPCTSTR pFileName, int nWidth, int nLength, int nBlockWidth, int nBlockLength, XMFLOAT3 xmf3Scale)
 {

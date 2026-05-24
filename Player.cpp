@@ -1,12 +1,10 @@
-//-----------------------------------------------------------------------------
-// File: CPlayer.cpp
-//-----------------------------------------------------------------------------
+// CPlayer.cpp
 
 #include "stdafx.h"
 #include "Player.h"
 #include "Shader.h"
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 // CPlayer
 
 CPlayer::CPlayer()
@@ -232,7 +230,7 @@ void CPlayer::Render(ID3D12GraphicsCommandList *pd3dCommandList, CCamera *pCamer
 	if (nCameraMode == THIRD_PERSON_CAMERA) CGameObject::Render(pd3dCommandList, pCamera);
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// --------------------------------------------------------------------------------------------------
 // CAirplanePlayer
 
 CAirplanePlayer::CAirplanePlayer(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList, ID3D12RootSignature *pd3dGraphicsRootSignature)

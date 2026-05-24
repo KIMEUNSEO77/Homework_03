@@ -1,6 +1,4 @@
-//-----------------------------------------------------------------------------
-// File: CGameFramework.cpp
-//-----------------------------------------------------------------------------
+// CGameFramework.cpp
 
 #include "stdafx.h"
 #include "GameFramework.h"
@@ -493,7 +491,6 @@ void CGameFramework::WaitForGpuComplete()
 void CGameFramework::MoveToNextFrame()
 {
 	m_nSwapChainBufferIndex = m_pdxgiSwapChain->GetCurrentBackBufferIndex();
-	//m_nSwapChainBufferIndex = (m_nSwapChainBufferIndex + 1) % m_nSwapChainBuffers;
 
 	UINT64 nFenceValue = ++m_nFenceValues[m_nSwapChainBufferIndex];
 	HRESULT hResult = m_pd3dCommandQueue->Signal(m_pd3dFence, nFenceValue);
@@ -572,8 +569,7 @@ void CGameFramework::FrameAdvance()
 	m_pdxgiSwapChain->Present(0, 0);
 #endif
 #endif
-
-	//	m_nSwapChainBufferIndex = m_pdxgiSwapChain->GetCurrentBackBufferIndex();
+	
 	MoveToNextFrame();
 
 	m_GameTimer.GetFrameRate(m_pszFrameRate + 12, 37);

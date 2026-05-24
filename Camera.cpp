@@ -1,3 +1,4 @@
+// Camera.cpp
 #include "stdafx.h"
 #include "Player.h"
 #include "Camera.h"
@@ -74,8 +75,6 @@ void CCamera::SetScissorRect(LONG xLeft, LONG yTop, LONG xRight, LONG yBottom)
 void CCamera::GenerateProjectionMatrix(float fNearPlaneDistance, float fFarPlaneDistance, float fAspectRatio, float fFOVAngle)
 {
 	m_xmf4x4Projection = Matrix4x4::PerspectiveFovLH(XMConvertToRadians(fFOVAngle), fAspectRatio, fNearPlaneDistance, fFarPlaneDistance);
-	//	XMMATRIX xmmtxProjection = XMMatrixPerspectiveFovLH(XMConvertToRadians(fFOVAngle), fAspectRatio, fNearPlaneDistance, fFarPlaneDistance);
-	//	XMStoreFloat4x4(&m_xmf4x4Projection, xmmtxProjection);
 }
 
 void CCamera::GenerateViewMatrix(XMFLOAT3 xmf3Position, XMFLOAT3 xmf3LookAt, XMFLOAT3 xmf3Up)
@@ -145,7 +144,7 @@ void CCamera::SetViewportsAndScissorRects(ID3D12GraphicsCommandList* pd3dCommand
 	pd3dCommandList->RSSetScissorRects(1, &m_d3dScissorRect);
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ----------------------------------------------------------------------------------------------------------------
 // CSpaceShipCamera
 
 CSpaceShipCamera::CSpaceShipCamera(CCamera* pCamera) : CCamera(pCamera)
@@ -190,7 +189,7 @@ void CSpaceShipCamera::Rotate(float x, float y, float z)
 	}
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ----------------------------------------------------------------------------------------------------------------
 // CFirstPersonCamera
 
 CFirstPersonCamera::CFirstPersonCamera(CCamera* pCamera) : CCamera(pCamera)
@@ -239,7 +238,7 @@ void CFirstPersonCamera::Rotate(float x, float y, float z)
 	}
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ----------------------------------------------------------------------------------------------------------------
 // CThirdPersonCamera
 
 CThirdPersonCamera::CThirdPersonCamera(CCamera* pCamera) : CCamera(pCamera)
