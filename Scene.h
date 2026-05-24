@@ -7,6 +7,18 @@
 #include "Shader.h"
 #include "Player.h"
 
+enum GAME_SCENE_ID
+{
+	GAME_SCENE_TITLE = 0,
+	GAME_SCENE_MENU = 1,
+	GAME_SCENE_LEVEL1 = 2
+};
+
+struct GAME_STATE
+{
+	int m_nScene = GAME_SCENE_TITLE;
+	bool m_bMouseDown = false;
+};
 class CScene
 {
 public:
@@ -26,6 +38,7 @@ public:
 	ID3D12RootSignature* CreateGraphicsRootSignature(ID3D12Device* pd3dDevice);
 	ID3D12RootSignature* GetGraphicsRootSignature() { return(m_pd3dGraphicsRootSignature); }
 	CHeightMapTerrain* GetTerrain() { return(m_pTerrain); }
+	bool IsLevelScene() { return(m_GameState.m_nScene == GAME_SCENE_LEVEL1); }
 
 	bool ProcessInput(UCHAR* pKeysBuffer);
 	void AnimateObjects(float fTimeElapsed);
@@ -38,15 +51,24 @@ public:
 	void MakeExplosion(XMFLOAT3 xmf3Position);
 	void UpdateCoinObjects(CCamera* pCamera);
 	CGameObject* CreateColorCube(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT4 xmf4Color, float fSize);
+	void BuildTitleObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	void BuildMenuObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	void ReleaseSceneObjects(CGameObject** ppObjects, int nObjects);
+	void RenderSceneObjects(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CGameObject** ppObjects, int nObjects);
 
 	CPlayer*					m_pPlayer = NULL;
 	CHeightMapTerrain*			m_pTerrain = NULL;
 
 public:
 	ID3D12RootSignature*		m_pd3dGraphicsRootSignature = NULL;
+	GAME_STATE					 m_GameState;
 
 	CGameObject**				m_ppGameObjects = NULL;
 	int							m_nGameObjects = 0;
+	CGameObject**				 m_ppTitleObjects = NULL;
+	int								 m_nTitleObjects = 0;
+	CGameObject**				 m_ppMenuObjects = NULL;
+	int								 m_nMenuObjects = 0;
 	bool								m_bHouseActive[16] = { true, true, true, true };
 	bool								m_bBombActive = false;
 	bool								m_bFireKeyDown = false;

@@ -403,6 +403,12 @@ void CGameFramework::BuildObjects()
 	float fPlayerX = pTerrain->GetWidth() * 0.5f;
 	float fPlayerZ = pTerrain->GetLength() * 0.5f;
 	pAirplanePlayer->SetPosition(XMFLOAT3(fPlayerX, pTerrain->GetHeight(fPlayerX, fPlayerZ) + 70.0f, fPlayerZ));
+	if (m_pScene && !m_pScene->IsLevelScene())
+	{
+		pAirplanePlayer->SetPosition(XMFLOAT3(0.0f, 0.0f, 0.0f));
+		pAirplanePlayer->GetCamera()->SetOffset(XMFLOAT3(0.0f, 0.0f, -430.0f));
+		pAirplanePlayer->GetCamera()->SetPosition(XMFLOAT3(0.0f, 0.0f, -430.0f));
+	}
 	m_pScene->m_pPlayer = m_pPlayer = pAirplanePlayer;
 	m_pCamera = m_pPlayer->GetCamera();
 
@@ -432,6 +438,22 @@ void CGameFramework::ProcessInput()
 	bool bProcessedByScene = false;
 
 	if (GetKeyboardState(pKeysBuffer) && m_pScene) bProcessedByScene = m_pScene->ProcessInput(pKeysBuffer);
+	if (m_pScene && !m_pScene->IsLevelScene())
+	{
+		float cxDelta = 0.0f, cyDelta = 0.0f;
+		POINT ptCursorPos;
+		if (GetCapture() == m_hWnd)
+		{
+			SetCursor(NULL);
+			GetCursorPos(&ptCursorPos);
+			cxDelta = (float)(ptCursorPos.x - m_ptOldCursorPos.x) / 3.0f;
+			cyDelta = (float)(ptCursorPos.y - m_ptOldCursorPos.y) / 3.0f;
+			SetCursorPos(m_ptOldCursorPos.x, m_ptOldCursorPos.y);
+		}
+		if (cxDelta || cyDelta) m_pPlayer->Rotate(cyDelta, cxDelta, 0.0f);
+		m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
+		return;
+	}
 	if (!bProcessedByScene)
 	{
 		DWORD dwDirection = 0;
@@ -470,14 +492,13 @@ void CGameFramework::ProcessInput()
 	}
 	m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
 }
-
 void CGameFramework::AnimateObjects()
 {
 	float fTimeElapsed = m_GameTimer.GetTimeElapsed();
 
 	if (m_pScene) m_pScene->AnimateObjects(fTimeElapsed);
 
-	m_pPlayer->Animate(fTimeElapsed, NULL);
+	if (m_pPlayer && (!m_pScene || m_pScene->IsLevelScene())) m_pPlayer->Animate(fTimeElapsed, NULL);
 }
 
 void CGameFramework::WaitForGpuComplete()
@@ -510,6 +531,12 @@ void CGameFramework::MoveToNextFrame()
 
 void CGameFramework::FrameAdvance()
 {
+	if (m_bStartFullScreen)
+	{
+		ChangeSwapChainState();
+		m_bStartFullScreen = false;
+	}
+
 	m_GameTimer.Tick(0.0f);
 
 	ProcessInput();
@@ -545,7 +572,7 @@ void CGameFramework::FrameAdvance()
 #ifdef _WITH_PLAYER_TOP
 	m_pd3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
 #endif
-	if (m_pPlayer) m_pPlayer->Render(m_pd3dCommandList, m_pCamera);
+	if (m_pPlayer && (!m_pScene || m_pScene->IsLevelScene())) m_pPlayer->Render(m_pd3dCommandList, m_pCamera);
 
 	d3dResourceBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	d3dResourceBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;

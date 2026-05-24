@@ -50,6 +50,7 @@ private:
 	ID3D12Device* m_pd3dDevice = NULL;
 
 	bool						m_bMsaa4xEnable = false;
+	bool						 m_bStartFullScreen = true;
 	UINT						m_nMsaa4xQualityLevels = 0;
 
 	static const UINT			m_nSwapChainBuffers = 2;

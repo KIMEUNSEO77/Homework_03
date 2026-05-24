@@ -79,11 +79,79 @@ CGameObject* CScene::CreateColorCube(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
 	pObject->SetPosition(0.0f, -10000.0f, 0.0f);
 	return(pObject);
 }
+void CScene::ReleaseSceneObjects(CGameObject** ppObjects, int nObjects)
+{
+	if (!ppObjects) return;
+	for (int i = 0; i < nObjects; i++) if (ppObjects[i]) delete ppObjects[i];
+	delete[] ppObjects;
+}
+
+void CScene::RenderSceneObjects(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CGameObject** ppObjects, int nObjects)
+{
+	if (!ppObjects) return;
+	for (int i = 0; i < nObjects; i++) if (ppObjects[i]) ppObjects[i]->Render(pd3dCommandList, pCamera);
+}
+
+void CScene::BuildTitleObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	vector<CGameObject*> vObjects;
+	CMesh* pMesh = new CCubeMesh(pd3dDevice, pd3dCommandList, 6.0f, 6.0f, 6.0f);
+
+	auto AddBlock = [&](float x, float y, float z, XMFLOAT4 color)
+	{
+		CGameObject* pObject = new CGameObject();
+		pObject->SetMesh(pMesh);
+		pObject->m_nMaterials = 1;
+		pObject->m_ppMaterials = new CMaterial * [1];
+		pObject->m_ppMaterials[0] = new CMaterial();
+		pObject->m_ppMaterials[0]->SetPseudoLightingShader();
+		pObject->SetColor(color);
+		pObject->SetPosition(x, y, z);
+		vObjects.push_back(pObject);
+	};
+
+	for (int y = 0; y < 7; y++)
+	{
+		for (int x = 0; x < 48; x++)
+		{
+			bool bBorder = (y == 0) || (y == 6) || (x == 0) || (x == 47);
+			if (bBorder) AddBlock(-144.0f + (x * 6.0f), 70.0f - (y * 6.0f), 0.0f, XMFLOAT4(0.1f, 0.55f, 1.0f, 1.0f));
+		}
+	}
+
+	for (int i = 0; i < 22; i++) AddBlock(-66.0f + (i * 6.0f), -5.0f, 0.0f, XMFLOAT4(1.0f, 0.9f, 0.1f, 1.0f));
+	for (int i = 0; i < 10; i++) AddBlock(-30.0f + (i * 6.0f), -35.0f, 0.0f, XMFLOAT4(1.0f, 0.25f, 0.15f, 1.0f));
+
+	m_nTitleObjects = (int)vObjects.size();
+	m_ppTitleObjects = new CGameObject * [m_nTitleObjects];
+	for (int i = 0; i < m_nTitleObjects; i++) m_ppTitleObjects[i] = vObjects[i];
+}
+
+void CScene::BuildMenuObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	vector<CGameObject*> vObjects;
+	const float fY[6] = { 90.0f, 55.0f, 20.0f, -15.0f, -50.0f, -85.0f };
+	for (int i = 0; i < 6; i++)
+	{
+		int nWidth = (i == 4) ? 16 : 24;
+		for (int x = 0; x < nWidth; x++)
+		{
+			CGameObject* pObject = CreateColorCube(pd3dDevice, pd3dCommandList, (i == 4) ? XMFLOAT4(0.15f, 1.0f, 0.2f, 1.0f) : XMFLOAT4(0.8f, 0.8f, 0.85f, 1.0f), 5.0f);
+			pObject->SetPosition(-(nWidth * 2.5f) + (x * 5.0f), fY[i], 0.0f);
+			vObjects.push_back(pObject);
+		}
+	}
+	m_nMenuObjects = (int)vObjects.size();
+	m_ppMenuObjects = new CGameObject * [m_nMenuObjects];
+	for (int i = 0; i < m_nMenuObjects; i++) m_ppMenuObjects[i] = vObjects[i];
+}
 void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	m_pd3dGraphicsRootSignature = CreateGraphicsRootSignature(pd3dDevice);
 
 	CMaterial::PrepareShaders(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
+	BuildTitleObjects(pd3dDevice, pd3dCommandList);
+	BuildMenuObjects(pd3dDevice, pd3dCommandList);
 
 	XMFLOAT3 xmf3TerrainScale(8.0f, 2.0f, 8.0f);
 	m_pTerrain = new CHeightMapTerrain(pd3dDevice, pd3dCommandList, _T("Image/HeightMap.raw"), 257, 257, 257, 257, xmf3TerrainScale);
@@ -207,9 +275,15 @@ void CScene::ReleaseObjects()
 
 	if (m_ppGameObjects)
 	{
-	for (int i = 0; i < m_nGameObjects; i++) delete m_ppGameObjects[i];
+		for (int i = 0; i < m_nGameObjects; i++) delete m_ppGameObjects[i];
 		delete[] m_ppGameObjects;
 	}
+	ReleaseSceneObjects(m_ppTitleObjects, m_nTitleObjects);
+	m_ppTitleObjects = NULL;
+	m_nTitleObjects = 0;
+	ReleaseSceneObjects(m_ppMenuObjects, m_nMenuObjects);
+	m_ppMenuObjects = NULL;
+	m_nMenuObjects = 0;
 
 	ReleaseShaderVariables();
 }
@@ -266,6 +340,8 @@ void CScene::ReleaseUploadBuffers()
 {
 	if (m_pTerrain) m_pTerrain->ReleaseUploadBuffers();
 	for (int i = 0; i < m_nGameObjects; i++) m_ppGameObjects[i]->ReleaseUploadBuffers();
+	for (int i = 0; i < m_nTitleObjects; i++) if (m_ppTitleObjects[i]) m_ppTitleObjects[i]->ReleaseUploadBuffers();
+	for (int i = 0; i < m_nMenuObjects; i++) if (m_ppMenuObjects[i]) m_ppMenuObjects[i]->ReleaseUploadBuffers();
 	if (m_pBomb) m_pBomb->ReleaseUploadBuffers();
 	for (int i = 0; i < 10; i++) if (m_ppCoinObjects[i]) m_ppCoinObjects[i]->ReleaseUploadBuffers();
 	for (int i = 0; i < 16; i++) if (m_ppExplosionObjects[i]) m_ppExplosionObjects[i]->ReleaseUploadBuffers();
@@ -273,15 +349,46 @@ void CScene::ReleaseUploadBuffers()
 
 bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
+	if (nMessageID == WM_LBUTTONDOWN)
+	{
+		m_GameState.m_bMouseDown = true;
+		if (m_GameState.m_nScene == GAME_SCENE_TITLE)
+		{
+			m_GameState.m_nScene = GAME_SCENE_MENU;
+			return(true);
+		}
+		if (m_GameState.m_nScene == GAME_SCENE_MENU)
+		{
+			m_GameState.m_nScene = GAME_SCENE_LEVEL1;
+			if (m_pPlayer && m_pTerrain)
+			{
+				float fPlayerX = m_pTerrain->GetWidth() * 0.5f;
+				float fPlayerZ = m_pTerrain->GetLength() * 0.5f;
+				XMFLOAT3 xmf3PlayerPosition(fPlayerX, m_pTerrain->GetHeight(fPlayerX, fPlayerZ) + 70.0f, fPlayerZ);
+				m_pPlayer->SetPosition(xmf3PlayerPosition);
+				CCamera* pCamera = m_pPlayer->GetCamera();
+				if (pCamera)
+				{
+					pCamera->SetOffset(XMFLOAT3(0.0f, 150.0f, -170.0f));
+					pCamera->SetTimeLag(0.25f);
+					pCamera->SetPosition(Vector3::Add(xmf3PlayerPosition, pCamera->GetOffset()));
+				}
+				m_pPlayer->Update(0.0f);
+			}
+			return(true);
+		}
+	}
+	if (nMessageID == WM_LBUTTONUP) m_GameState.m_bMouseDown = false;
 	return(false);
 }
-
 bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
 	return(false);
 }
 bool CScene::ProcessInput(UCHAR* pKeysBuffer)
 {
+	if (m_GameState.m_nScene != GAME_SCENE_LEVEL1) return(true);
+
 	bool bFireKeyDown = ((pKeysBuffer[VK_SPACE] & 0xF0) != 0);
 	if (bFireKeyDown && !m_bFireKeyDown) FireBomb();
 	m_bFireKeyDown = bFireKeyDown;
@@ -289,7 +396,20 @@ bool CScene::ProcessInput(UCHAR* pKeysBuffer)
 }
 void CScene::AnimateObjects(float fTimeElapsed)
 {
-	for (int i = 0; i < m_nGameObjects; i++) m_ppGameObjects[i]->Animate(fTimeElapsed, NULL);
+	if (m_GameState.m_nScene == GAME_SCENE_TITLE)
+	{
+		for (int i = 0; i < m_nTitleObjects; i++)
+		{
+			m_ppTitleObjects[i]->Rotate(0.0f, 20.0f * fTimeElapsed, 0.0f);
+			m_ppTitleObjects[i]->UpdateTransform(NULL);
+		}
+		return;
+	}
+	if (m_GameState.m_nScene == GAME_SCENE_MENU)
+	{
+		for (int i = 0; i < m_nMenuObjects; i++) m_ppMenuObjects[i]->UpdateTransform(NULL);
+		return;
+	}	for (int i = 0; i < m_nGameObjects; i++) m_ppGameObjects[i]->Animate(fTimeElapsed, NULL);
 
 	if (!m_bGameOver && !m_bGameClear && m_pPlayer)
 	{
