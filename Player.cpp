@@ -290,7 +290,7 @@ CCamera *CAirplanePlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 			SetFriction(2.0f);
 			SetGravity(XMFLOAT3(0.0f, 0.0f, 0.0f));
 			SetMaxVelocityXZ(2.5f);
-			SetMaxVelocityY(40.0f);
+			SetMaxVelocityY(160.0f);
 			m_pCamera = OnChangeCamera(FIRST_PERSON_CAMERA, nCurrentCameraMode);
 			m_pCamera->SetTimeLag(0.0f);
 			m_pCamera->SetOffset(XMFLOAT3(0.0f, 20.0f, 0.0f));
@@ -299,10 +299,10 @@ CCamera *CAirplanePlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 			m_pCamera->SetScissorRect(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
 			break;
 		case SPACESHIP_CAMERA:
-			SetFriction(100.5f);
+			SetFriction(120.0f);
 			SetGravity(XMFLOAT3(0.0f, 0.0f, 0.0f));
-			SetMaxVelocityXZ(40.0f);
-			SetMaxVelocityY(40.0f);
+			SetMaxVelocityXZ(180.0f);
+			SetMaxVelocityY(160.0f);
 			m_pCamera = OnChangeCamera(SPACESHIP_CAMERA, nCurrentCameraMode);
 			m_pCamera->SetTimeLag(0.0f);
 			m_pCamera->SetOffset(XMFLOAT3(0.0f, 0.0f, 0.0f));
@@ -311,10 +311,10 @@ CCamera *CAirplanePlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 			m_pCamera->SetScissorRect(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
 			break;
 		case THIRD_PERSON_CAMERA:
-			SetFriction(20.5f);
+			SetFriction(80.0f);
 			SetGravity(XMFLOAT3(0.0f, 0.0f, 0.0f));
-			SetMaxVelocityXZ(25.5f);
-			SetMaxVelocityY(40.0f);
+			SetMaxVelocityXZ(150.0f);
+			SetMaxVelocityY(160.0f);
 			m_pCamera = OnChangeCamera(THIRD_PERSON_CAMERA, nCurrentCameraMode);
 			m_pCamera->SetTimeLag(0.25f);
 			m_pCamera->SetOffset(XMFLOAT3(0.0f, 65.0f, -140.0f));
