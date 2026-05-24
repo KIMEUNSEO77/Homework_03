@@ -402,7 +402,7 @@ void CGameFramework::BuildObjects()
 	CHeightMapTerrain* pTerrain = m_pScene->GetTerrain();
 	float fPlayerX = pTerrain->GetWidth() * 0.5f;
 	float fPlayerZ = pTerrain->GetLength() * 0.5f;
-	pAirplanePlayer->SetPosition(XMFLOAT3(fPlayerX, pTerrain->GetHeight(fPlayerX, fPlayerZ) + 25.0f, fPlayerZ));
+	pAirplanePlayer->SetPosition(XMFLOAT3(fPlayerX, pTerrain->GetHeight(fPlayerX, fPlayerZ) + 70.0f, fPlayerZ));
 	m_pScene->m_pPlayer = m_pPlayer = pAirplanePlayer;
 	m_pCamera = m_pPlayer->GetCamera();
 
@@ -430,11 +430,13 @@ void CGameFramework::ProcessInput()
 {
 	static UCHAR pKeysBuffer[256];
 	bool bProcessedByScene = false;
+
 	if (GetKeyboardState(pKeysBuffer) && m_pScene) bProcessedByScene = m_pScene->ProcessInput(pKeysBuffer);
 	if (!bProcessedByScene)
 	{
 		DWORD dwDirection = 0;
 		DWORD dwVerticalDirection = 0;
+
 		if (pKeysBuffer['W'] & 0xF0) dwDirection |= DIR_FORWARD;
 		if (pKeysBuffer['S'] & 0xF0) dwDirection |= DIR_BACKWARD;
 		if (pKeysBuffer['A'] & 0xF0) dwDirection |= DIR_LEFT;

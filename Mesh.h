@@ -140,7 +140,30 @@ protected:
 };
 
 // -----------------------------------------------------------------------------------------------------------------
+class CCubeMesh : public CMesh
+{
+public:
+	CCubeMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float fWidth = 1.0f, float fHeight = 1.0f, float fDepth = 1.0f);
+	virtual ~CCubeMesh();
 
+	virtual void ReleaseUploadBuffers();
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, int nSubSet);
+
+protected:
+	UINT m_nIndices = 0;
+	ID3D12Resource* m_pd3dPositionBuffer = NULL;
+	ID3D12Resource* m_pd3dPositionUploadBuffer = NULL;
+	D3D12_VERTEX_BUFFER_VIEW m_d3dPositionBufferView;
+	ID3D12Resource* m_pd3dNormalBuffer = NULL;
+	ID3D12Resource* m_pd3dNormalUploadBuffer = NULL;
+	D3D12_VERTEX_BUFFER_VIEW m_d3dNormalBufferView;
+	ID3D12Resource* m_pd3dIndexBuffer = NULL;
+	ID3D12Resource* m_pd3dIndexUploadBuffer = NULL;
+	D3D12_INDEX_BUFFER_VIEW m_d3dIndexBufferView;
+};
+
+// -----------------------------------------------------------------------------------------------------------------
 class CHeightMapImage
 {
 private:

@@ -8,6 +8,7 @@ cbuffer cbCameraInfo : register(b1)
 cbuffer cbGameObjectInfo : register(b2)
 {
 	matrix					gmtxGameObject : packoffset(c0);
+	float4					gColor : packoffset(c4);
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -41,6 +42,7 @@ VS_LIGHTING_OUTPUT VSPseudoLighting(VS_LIGHTING_INPUT input)
 
 float4 PSPseudoLighting(VS_LIGHTING_OUTPUT input) : SV_TARGET
 {
+		if (any(abs(gColor.rgb - float3(1.0f, 1.0f, 1.0f)) > 0.01f)) return(float4(saturate(gColor.rgb), 1.0f));
 	return(input.color);
 }
 

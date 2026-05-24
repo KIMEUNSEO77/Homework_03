@@ -464,3 +464,96 @@ void CBinaryMeshFromFile::Render(ID3D12GraphicsCommandList* pd3dCommandList, int
 {
 	Render(pd3dCommandList);
 }
+// -----------------------------------------------------------------------------------------------------------------
+// CCubeMesh
+
+CCubeMesh::CCubeMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float fWidth, float fHeight, float fDepth)
+{
+	float x = fWidth * 0.5f;
+	float y = fHeight * 0.5f;
+	float z = fDepth * 0.5f;
+
+	XMFLOAT3 pxmf3Positions[24] =
+	{
+		XMFLOAT3(-x, -y, -z), XMFLOAT3(-x, +y, -z), XMFLOAT3(+x, +y, -z), XMFLOAT3(+x, -y, -z),
+		XMFLOAT3(+x, -y, +z), XMFLOAT3(+x, +y, +z), XMFLOAT3(-x, +y, +z), XMFLOAT3(-x, -y, +z),
+		XMFLOAT3(-x, +y, -z), XMFLOAT3(-x, +y, +z), XMFLOAT3(+x, +y, +z), XMFLOAT3(+x, +y, -z),
+		XMFLOAT3(-x, -y, +z), XMFLOAT3(-x, -y, -z), XMFLOAT3(+x, -y, -z), XMFLOAT3(+x, -y, +z),
+		XMFLOAT3(-x, -y, +z), XMFLOAT3(-x, +y, +z), XMFLOAT3(-x, +y, -z), XMFLOAT3(-x, -y, -z),
+		XMFLOAT3(+x, -y, -z), XMFLOAT3(+x, +y, -z), XMFLOAT3(+x, +y, +z), XMFLOAT3(+x, -y, +z)
+	};
+
+	XMFLOAT3 pxmf3Normals[24] =
+	{
+		XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f),
+		XMFLOAT3(0.0f, 0.0f, +1.0f), XMFLOAT3(0.0f, 0.0f, +1.0f), XMFLOAT3(0.0f, 0.0f, +1.0f), XMFLOAT3(0.0f, 0.0f, +1.0f),
+		XMFLOAT3(0.0f, +1.0f, 0.0f), XMFLOAT3(0.0f, +1.0f, 0.0f), XMFLOAT3(0.0f, +1.0f, 0.0f), XMFLOAT3(0.0f, +1.0f, 0.0f),
+		XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT3(0.0f, -1.0f, 0.0f),
+		XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f),
+		XMFLOAT3(+1.0f, 0.0f, 0.0f), XMFLOAT3(+1.0f, 0.0f, 0.0f), XMFLOAT3(+1.0f, 0.0f, 0.0f), XMFLOAT3(+1.0f, 0.0f, 0.0f)
+	};
+
+	UINT pnIndices[36] =
+	{
+		0, 1, 2, 0, 2, 3,
+		4, 5, 6, 4, 6, 7,
+		8, 9, 10, 8, 10, 11,
+		12, 13, 14, 12, 14, 15,
+		16, 17, 18, 16, 18, 19,
+		20, 21, 22, 20, 22, 23
+	};
+
+	m_nVertices = 24;
+	m_nIndices = 36;
+	m_nType = VERTEXT_POSITION | VERTEXT_NORMAL;
+	m_d3dPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+	m_pd3dPositionBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pxmf3Positions, sizeof(pxmf3Positions), D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dPositionUploadBuffer);
+	m_d3dPositionBufferView.BufferLocation = m_pd3dPositionBuffer->GetGPUVirtualAddress();
+	m_d3dPositionBufferView.StrideInBytes = sizeof(XMFLOAT3);
+	m_d3dPositionBufferView.SizeInBytes = sizeof(pxmf3Positions);
+
+	m_pd3dNormalBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pxmf3Normals, sizeof(pxmf3Normals), D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dNormalUploadBuffer);
+	m_d3dNormalBufferView.BufferLocation = m_pd3dNormalBuffer->GetGPUVirtualAddress();
+	m_d3dNormalBufferView.StrideInBytes = sizeof(XMFLOAT3);
+	m_d3dNormalBufferView.SizeInBytes = sizeof(pxmf3Normals);
+
+	m_pd3dIndexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pnIndices, sizeof(pnIndices), D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_INDEX_BUFFER, &m_pd3dIndexUploadBuffer);
+	m_d3dIndexBufferView.BufferLocation = m_pd3dIndexBuffer->GetGPUVirtualAddress();
+	m_d3dIndexBufferView.Format = DXGI_FORMAT_R32_UINT;
+	m_d3dIndexBufferView.SizeInBytes = sizeof(pnIndices);
+}
+
+CCubeMesh::~CCubeMesh()
+{
+	if (m_pd3dPositionBuffer) m_pd3dPositionBuffer->Release();
+	if (m_pd3dPositionUploadBuffer) m_pd3dPositionUploadBuffer->Release();
+	if (m_pd3dNormalBuffer) m_pd3dNormalBuffer->Release();
+	if (m_pd3dNormalUploadBuffer) m_pd3dNormalUploadBuffer->Release();
+	if (m_pd3dIndexBuffer) m_pd3dIndexBuffer->Release();
+	if (m_pd3dIndexUploadBuffer) m_pd3dIndexUploadBuffer->Release();
+}
+
+void CCubeMesh::ReleaseUploadBuffers()
+{
+	if (m_pd3dPositionUploadBuffer) m_pd3dPositionUploadBuffer->Release();
+	m_pd3dPositionUploadBuffer = NULL;
+	if (m_pd3dNormalUploadBuffer) m_pd3dNormalUploadBuffer->Release();
+	m_pd3dNormalUploadBuffer = NULL;
+	if (m_pd3dIndexUploadBuffer) m_pd3dIndexUploadBuffer->Release();
+	m_pd3dIndexUploadBuffer = NULL;
+}
+
+void CCubeMesh::Render(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	pd3dCommandList->IASetPrimitiveTopology(m_d3dPrimitiveTopology);
+	D3D12_VERTEX_BUFFER_VIEW pVertexBufferViews[2] = { m_d3dPositionBufferView, m_d3dNormalBufferView };
+	pd3dCommandList->IASetVertexBuffers(m_nSlot, 2, pVertexBufferViews);
+	pd3dCommandList->IASetIndexBuffer(&m_d3dIndexBufferView);
+	pd3dCommandList->DrawIndexedInstanced(m_nIndices, 1, 0, 0, 0);
+}
+
+void CCubeMesh::Render(ID3D12GraphicsCommandList* pd3dCommandList, int nSubSet)
+{
+	Render(pd3dCommandList);
+}

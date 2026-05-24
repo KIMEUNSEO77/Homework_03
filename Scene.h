@@ -33,6 +33,12 @@ public:
 
 	void ReleaseUploadBuffers();
 
+	void FireBomb();
+	void RespawnHouse(int nIndex);
+	void MakeExplosion(XMFLOAT3 xmf3Position);
+	void UpdateCoinObjects(CCamera* pCamera);
+	CGameObject* CreateColorCube(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT4 xmf4Color, float fSize);
+
 	CPlayer*					m_pPlayer = NULL;
 	CHeightMapTerrain*			m_pTerrain = NULL;
 
@@ -41,4 +47,18 @@ public:
 
 	CGameObject**				m_ppGameObjects = NULL;
 	int							m_nGameObjects = 0;
+	bool								m_bHouseActive[16] = { true, true, true, true };
+	bool								m_bBombActive = false;
+	bool								m_bFireKeyDown = false;
+	bool								m_bGameClear = false;
+	bool								m_bGameOver = false;
+	int									m_nCoins = 0;
+	float								m_fHouseRespawnTimer = 0.0f;
+	float								m_fGameEndBlink = 0.0f;
+
+	CGameObject*					m_pBomb = NULL;
+	CGameObject*					m_ppCoinObjects[10] = { NULL };
+	CGameObject*					m_ppExplosionObjects[16] = { NULL };
+	XMFLOAT3						m_pxmf3ExplosionVelocity[16];
+	float								m_pfExplosionTime[16] = { 0.0f };
 };

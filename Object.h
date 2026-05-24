@@ -97,6 +97,7 @@ public:
 
 	XMFLOAT4X4						m_xmf4x4Transform;
 	XMFLOAT4X4						m_xmf4x4World;
+	XMFLOAT4						m_xmf4Color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 
 	CGameObject 					*m_pParent = NULL;
 	CGameObject 					*m_pChild = NULL;
@@ -133,6 +134,7 @@ public:
 	void SetPosition(float x, float y, float z);
 	void SetPosition(XMFLOAT3 xmf3Position);
 	void SetScale(float x, float y, float z);
+	void SetColor(XMFLOAT4 xmf4Color) { m_xmf4Color = xmf4Color; }
 
 	void MoveStrafe(float fDistance = 1.0f);
 	void MoveUp(float fDistance = 1.0f);
