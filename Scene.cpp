@@ -95,7 +95,24 @@ void CScene::RenderSceneObjects(ID3D12GraphicsCommandList* pd3dCommandList, CCam
 void CScene::BuildTitleObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	vector<CGameObject*> vObjects;
-	CMesh* pMesh = new CCubeMesh(pd3dDevice, pd3dCommandList, 6.0f, 6.0f, 6.0f);
+	CMesh* pMesh = new CCubeMesh(pd3dDevice, pd3dCommandList, 4.0f, 4.0f, 4.0f);
+
+	const char* p3[7] = { "11110", "00001", "00001", "01110", "00001", "00001", "11110" };
+	const char* pD[7] = { "11110", "10001", "10001", "10001", "10001", "10001", "11110" };
+	const char* p1[7] = { "00100", "01100", "00100", "00100", "00100", "00100", "11111" };
+	const char* pGe[7] = { "11100", "00100", "00111", "00101", "00111", "00100", "00100" };
+	const char* pIm[7] = { "01110", "10001", "10001", "01110", "11111", "10001", "11111" };
+	const char* pPeu[7] = { "11111", "10001", "10001", "11111", "00100", "11111", "00100" };
+	const char* pRo[7] = { "11110", "10010", "10010", "11110", "00010", "11110", "00000" };
+	const char* pGeu[7] = { "11111", "10000", "10000", "10000", "10000", "11111", "00100" };
+	const char* pRae[7] = { "11100", "10100", "11111", "10101", "10111", "10100", "11100" };
+	const char* pMing[7] = { "11111", "10001", "11111", "00100", "11111", "10001", "11111" };
+	const char* pKim[7] = { "11110", "00010", "00010", "00010", "11111", "10001", "11111" };
+	const char* pEun[7] = { "01110", "10001", "10001", "01110", "11111", "00100", "00100" };
+	const char* pSeo[7] = { "11110", "00010", "00100", "01000", "11111", "00100", "00100" };
+
+	const char** ppTitle[10] = { p3, pD, pGe, pIm, pPeu, pRo, pGeu, pRae, pMing, p1 };
+	const char** ppName[3] = { pKim, pEun, pSeo };
 
 	auto AddBlock = [&](float x, float y, float z, XMFLOAT4 color)
 	{
@@ -110,23 +127,36 @@ void CScene::BuildTitleObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 		vObjects.push_back(pObject);
 	};
 
-	for (int y = 0; y < 7; y++)
+	auto AddGlyph = [&](const char** ppRows, float fLeft, float fTop, XMFLOAT4 color)
 	{
-		for (int x = 0; x < 48; x++)
+		for (int y = 0; y < 7; y++)
 		{
-			bool bBorder = (y == 0) || (y == 6) || (x == 0) || (x == 47);
-			if (bBorder) AddBlock(-144.0f + (x * 6.0f), 70.0f - (y * 6.0f), 0.0f, XMFLOAT4(0.1f, 0.55f, 1.0f, 1.0f));
+			for (int x = 0; x < 5; x++)
+			{
+				if (ppRows[y][x] == '1') AddBlock(fLeft + (x * 5.0f), fTop - (y * 5.0f), 0.0f, color);
+			}
 		}
+	};
+
+	float fX = -155.0f;
+	for (int i = 0; i < 10; i++)
+	{
+		AddGlyph(ppTitle[i], fX, 55.0f, XMFLOAT4(0.15f, 0.75f, 1.0f, 1.0f));
+		fX += 30.0f;
+		if ((i == 1) || (i == 8)) fX += 15.0f;
 	}
 
-	for (int i = 0; i < 22; i++) AddBlock(-66.0f + (i * 6.0f), -5.0f, 0.0f, XMFLOAT4(1.0f, 0.9f, 0.1f, 1.0f));
-	for (int i = 0; i < 10; i++) AddBlock(-30.0f + (i * 6.0f), -35.0f, 0.0f, XMFLOAT4(1.0f, 0.25f, 0.15f, 1.0f));
+	fX = -42.0f;
+	for (int i = 0; i < 3; i++)
+	{
+		AddGlyph(ppName[i], fX, -30.0f, XMFLOAT4(1.0f, 0.85f, 0.12f, 1.0f));
+		fX += 32.0f;
+	}
 
 	m_nTitleObjects = (int)vObjects.size();
 	m_ppTitleObjects = new CGameObject * [m_nTitleObjects];
 	for (int i = 0; i < m_nTitleObjects; i++) m_ppTitleObjects[i] = vObjects[i];
 }
-
 void CScene::BuildMenuObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	vector<CGameObject*> vObjects;
@@ -512,6 +542,18 @@ void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera
 	pCamera->UpdateShaderVariables(pd3dCommandList);
 
 	UpdateShaderVariables(pd3dCommandList);
+
+	if (m_GameState.m_nScene == GAME_SCENE_TITLE)
+	{
+		RenderSceneObjects(pd3dCommandList, pCamera, m_ppTitleObjects, m_nTitleObjects);
+		return;
+	}
+
+	if (m_GameState.m_nScene == GAME_SCENE_MENU)
+	{
+		RenderSceneObjects(pd3dCommandList, pCamera, m_ppMenuObjects, m_nMenuObjects);
+		return;
+	}
 
 	if (m_pTerrain) m_pTerrain->Render(pd3dCommandList, pCamera);
 
