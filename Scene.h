@@ -55,6 +55,8 @@ public:
 	void BuildMenuObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	void ReleaseSceneObjects(CGameObject** ppObjects, int nObjects);
 	void RenderSceneObjects(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CGameObject** ppObjects, int nObjects);
+	bool IsTitleNameClicked(HWND hWnd, LPARAM lParam);
+	void StartTitleNameExplosion();
 
 	CPlayer*					m_pPlayer = NULL;
 	CHeightMapTerrain*			m_pTerrain = NULL;
@@ -67,6 +69,11 @@ public:
 	int							m_nGameObjects = 0;
 	CGameObject**				 m_ppTitleObjects = NULL;
 	int								 m_nTitleObjects = 0;
+	int							 m_nTitleNameStart = 0;
+	int							 m_nTitleNameObjects = 0;
+	bool							 m_bTitleNameExploding = false;
+	float							 m_fTitleExplosionTimer = 0.0f;
+	XMFLOAT3*				 m_pxmf3TitleObjectVelocity = NULL;
 	CGameObject**				 m_ppMenuObjects = NULL;
 	int								 m_nMenuObjects = 0;
 	bool								m_bHouseActive[16] = { true, true, true, true };

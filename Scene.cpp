@@ -155,15 +155,20 @@ void CScene::BuildTitleObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 	}
 
 	fX = -42.0f;
+	m_nTitleNameStart = (int)vObjects.size();
 	for (int i = 0; i < 3; i++)
 	{
 		AddGlyph(ppName[i], fX, -30.0f, XMFLOAT4(1.0f, 0.85f, 0.12f, 1.0f));
 		fX += 32.0f;
 	}
 
+	m_nTitleNameObjects = (int)vObjects.size() - m_nTitleNameStart;
 	m_nTitleObjects = (int)vObjects.size();
 	m_ppTitleObjects = new CGameObject * [m_nTitleObjects];
 	for (int i = 0; i < m_nTitleObjects; i++) m_ppTitleObjects[i] = vObjects[i];
+	delete[] m_pxmf3TitleObjectVelocity;
+	m_pxmf3TitleObjectVelocity = new XMFLOAT3[m_nTitleObjects];
+	for (int i = 0; i < m_nTitleObjects; i++) m_pxmf3TitleObjectVelocity[i] = XMFLOAT3(0.0f, 0.0f, 0.0f);
 }
 void CScene::BuildMenuObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
@@ -319,6 +324,10 @@ void CScene::ReleaseObjects()
 	ReleaseSceneObjects(m_ppTitleObjects, m_nTitleObjects);
 	m_ppTitleObjects = NULL;
 	m_nTitleObjects = 0;
+	delete[] m_pxmf3TitleObjectVelocity;
+	m_pxmf3TitleObjectVelocity = NULL;
+	m_nTitleNameStart = 0;
+	m_nTitleNameObjects = 0;
 	ReleaseSceneObjects(m_ppMenuObjects, m_nMenuObjects);
 	m_ppMenuObjects = NULL;
 	m_nMenuObjects = 0;
@@ -385,6 +394,49 @@ void CScene::ReleaseUploadBuffers()
 	for (int i = 0; i < 16; i++) if (m_ppExplosionObjects[i]) m_ppExplosionObjects[i]->ReleaseUploadBuffers();
 }
 
+bool CScene::IsTitleNameClicked(HWND hWnd, LPARAM lParam)
+{
+	RECT rcClient;
+	::GetClientRect(hWnd, &rcClient);
+	int nWidth = rcClient.right - rcClient.left;
+	int nHeight = rcClient.bottom - rcClient.top;
+	if ((nWidth <= 0) || (nHeight <= 0)) return(false);
+
+	int x = LOWORD(lParam);
+	int y = HIWORD(lParam);
+	int nLeft = int(nWidth * 0.40f);
+	int nRight = int(nWidth * 0.60f);
+	int nTop = int(nHeight * 0.56f);
+	int nBottom = int(nHeight * 0.66f);
+
+	return((x >= nLeft) && (x <= nRight) && (y >= nTop) && (y <= nBottom));
+}
+
+void CScene::StartTitleNameExplosion()
+{
+	if (m_bTitleNameExploding || !m_pxmf3TitleObjectVelocity) return;
+
+	m_bTitleNameExploding = true;
+	m_fTitleExplosionTimer = 0.0f;
+	XMFLOAT3 xmf3Center(0.0f, -45.0f, 0.0f);
+
+	for (int i = 0; i < m_nTitleNameObjects; i++)
+	{
+		int nObject = m_nTitleNameStart + i;
+		if ((nObject < 0) || (nObject >= m_nTitleObjects) || !m_ppTitleObjects[nObject]) continue;
+
+		XMFLOAT3 xmf3Position = m_ppTitleObjects[nObject]->GetPosition();
+		XMFLOAT3 xmf3Direction = Vector3::Subtract(xmf3Position, xmf3Center);
+		float fLength = Vector3::Length(xmf3Direction);
+		if (fLength < 0.01f) xmf3Direction = XMFLOAT3(RandomRange(-1.0f, 1.0f), RandomRange(-0.2f, 1.0f), 0.0f);
+		else xmf3Direction = Vector3::ScalarProduct(xmf3Direction, 1.0f / fLength, false);
+
+		m_pxmf3TitleObjectVelocity[nObject] = XMFLOAT3(
+			xmf3Direction.x * RandomRange(90.0f, 180.0f),
+			RandomRange(45.0f, 140.0f),
+			RandomRange(-90.0f, 90.0f));
+	}
+}
 bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
 	if (nMessageID == WM_LBUTTONDOWN)
@@ -392,7 +444,7 @@ bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam,
 		m_GameState.m_bMouseDown = true;
 		if (m_GameState.m_nScene == GAME_SCENE_TITLE)
 		{
-			m_GameState.m_nScene = GAME_SCENE_MENU;
+			if (IsTitleNameClicked(hWnd, lParam)) StartTitleNameExplosion();
 			return(true);
 		}
 		if (m_GameState.m_nScene == GAME_SCENE_MENU)
@@ -436,8 +488,30 @@ void CScene::AnimateObjects(float fTimeElapsed)
 {
 	if (m_GameState.m_nScene == GAME_SCENE_TITLE)
 	{
+		if (m_bTitleNameExploding)
+		{
+			m_fTitleExplosionTimer += fTimeElapsed;
+			for (int i = 0; i < m_nTitleNameObjects; i++)
+			{
+				int nObject = m_nTitleNameStart + i;
+				if ((nObject < 0) || (nObject >= m_nTitleObjects) || !m_ppTitleObjects[nObject]) continue;
+
+				XMFLOAT3 xmf3Position = m_ppTitleObjects[nObject]->GetPosition();
+				xmf3Position = Vector3::Add(xmf3Position, m_pxmf3TitleObjectVelocity[nObject], fTimeElapsed);
+				m_pxmf3TitleObjectVelocity[nObject].y -= 220.0f * fTimeElapsed;
+				m_ppTitleObjects[nObject]->SetPosition(xmf3Position);
+			}
+
+			if (m_fTitleExplosionTimer > 0.85f)
+			{
+				m_GameState.m_nScene = GAME_SCENE_MENU;
+				m_bTitleNameExploding = false;
+			}
+		}
+
 		for (int i = 0; i < m_nTitleObjects; i++)
 		{
+			if (!m_ppTitleObjects[i]) continue;
 			m_ppTitleObjects[i]->Rotate(0.0f, 20.0f * fTimeElapsed, 0.0f);
 			m_ppTitleObjects[i]->UpdateTransform(NULL);
 		}
