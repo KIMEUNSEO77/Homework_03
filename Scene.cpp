@@ -100,16 +100,18 @@ void CScene::BuildTitleObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 	const char* p3[7] = { "11110", "00001", "00001", "01110", "00001", "00001", "11110" };
 	const char* pD[7] = { "11110", "10001", "10001", "10001", "10001", "10001", "11110" };
 	const char* p1[7] = { "00100", "01100", "00100", "00100", "00100", "00100", "11111" };
-	const char* pGe[7] = { "11100", "00100", "00111", "00101", "00111", "00100", "00100" };
-	const char* pIm[7] = { "01110", "10001", "10001", "01110", "11111", "10001", "11111" };
-	const char* pPeu[7] = { "11111", "10001", "10001", "11111", "00100", "11111", "00100" };
-	const char* pRo[7] = { "11110", "10010", "10010", "11110", "00010", "11110", "00000" };
-	const char* pGeu[7] = { "11111", "10000", "10000", "10000", "10000", "11111", "00100" };
-	const char* pRae[7] = { "11100", "10100", "11111", "10101", "10111", "10100", "11100" };
-	const char* pMing[7] = { "11111", "10001", "11111", "00100", "11111", "10001", "11111" };
-	const char* pKim[7] = { "11110", "00010", "00010", "00010", "11111", "10001", "11111" };
-	const char* pEun[7] = { "01110", "10001", "10001", "01110", "11111", "00100", "00100" };
-	const char* pSeo[7] = { "11110", "00010", "00100", "01000", "11111", "00100", "00100" };
+
+	const char* pGe[7] = { "1110101", "0010101", "0010101", "0011101", "0010101", "0010101", "0010101" };
+	const char* pIm[7] = { "0111001", "1000101", "1000101", "0111001", "1111100", "1000100", "1111100" };
+	const char* pPeu[7] = { "11111111", "00100100", "00100100", "11111111", "00000000", "11111111", "00000000" };
+	const char* pRo[7] = { "111100", "000100", "111100", "100000", "111100", "001000", "111110" };
+	const char* pGeu[7] = { "111110", "000010", "000010", "000010", "000000", "111110", "000000" };
+	const char* pRae[7] = { "111001001", "001001001", "001001001", "111101101", "100001001", "111101001", "000001001" };
+	const char* pMing[7] = { "111101", "100101", "111101", "000100", "011100", "100010", "011100" };
+
+	const char* pKim[7] = { "11101", "00101", "00101", "00101", "11111", "10001", "11111" };
+	const char* pEun[7] = { "01110", "10001", "10001", "01110", "11111", "10000", "11111" };
+	const char* pSeo[7] = { "00001", "00101", "01001", "10011", "01001", "00001", "00001" };
 
 	const char** ppTitle[10] = { p3, pD, pGe, pIm, pPeu, pRo, pGeu, pRae, pMing, p1 };
 	const char** ppName[3] = { pKim, pEun, pSeo };
@@ -127,23 +129,29 @@ void CScene::BuildTitleObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 		vObjects.push_back(pObject);
 	};
 
-	auto AddGlyph = [&](const char** ppRows, float fLeft, float fTop, XMFLOAT4 color)
+	auto AddGlyph = [&](const char** ppRows, float fLeft, float fTop, XMFLOAT4 color) -> int
 	{
+		int nMaxWidth = 0;
 		for (int y = 0; y < 7; y++)
 		{
-			for (int x = 0; x < 5; x++)
+			int nWidth = 0;
+			while (ppRows[y][nWidth] != '\0') nWidth++;
+			if (nMaxWidth < nWidth) nMaxWidth = nWidth;
+
+			for (int x = 0; x < nWidth; x++)
 			{
 				if (ppRows[y][x] == '1') AddBlock(fLeft + (x * 5.0f), fTop - (y * 5.0f), 0.0f, color);
 			}
 		}
+		return(nMaxWidth);
 	};
 
-	float fX = -155.0f;
+	float fX = -210.0f;
 	for (int i = 0; i < 10; i++)
 	{
-		AddGlyph(ppTitle[i], fX, 55.0f, XMFLOAT4(0.15f, 0.75f, 1.0f, 1.0f));
-		fX += 30.0f;
-		if ((i == 1) || (i == 8)) fX += 15.0f;
+		int nWidth = AddGlyph(ppTitle[i], fX, 55.0f, XMFLOAT4(0.15f, 0.75f, 1.0f, 1.0f));
+		fX += (nWidth * 5.0f) + 8.0f;
+		if ((i == 1) || (i == 3) || (i == 8)) fX += 14.0f;
 	}
 
 	fX = -42.0f;
