@@ -496,6 +496,53 @@ void CScene::ReleaseUploadBuffers()
 	for (int i = 0; i < 16; i++) if (m_ppExplosionObjects[i]) m_ppExplosionObjects[i]->ReleaseUploadBuffers();
 }
 
+void CScene::ResetMenuCamera()
+{
+	if (!m_pPlayer) return;
+
+	m_pPlayer->Rotate(0.0f, -m_pPlayer->GetYaw(), 0.0f);
+	m_pPlayer->SetVelocity(XMFLOAT3(0.0f, 0.0f, 0.0f));
+	m_pPlayer->SetPosition(XMFLOAT3(0.0f, 0.0f, 0.0f));
+
+	CCamera* pCamera = m_pPlayer->GetCamera();
+	if (pCamera)
+	{
+		XMFLOAT3 xmf3CameraPosition(0.0f, 0.0f, -430.0f);
+		XMFLOAT3 xmf3LookAt(0.0f, 0.0f, 0.0f);
+		XMFLOAT3 xmf3Up(0.0f, 1.0f, 0.0f);
+		pCamera->SetTimeLag(0.0f);
+		pCamera->SetOffset(XMFLOAT3(0.0f, 0.0f, -430.0f));
+		pCamera->SetPosition(xmf3CameraPosition);
+		pCamera->GenerateViewMatrix(xmf3CameraPosition, xmf3LookAt, xmf3Up);
+	}
+}
+
+void CScene::ResetLevelState()
+{
+	m_nCoins = 0;
+	m_bGameClear = false;
+	m_bGameOver = false;
+	m_bBombActive = false;
+	m_bFireKeyDown = false;
+	m_fHouseRespawnTimer = 0.0f;
+	m_fGameEndBlink = 0.0f;
+
+	if (m_pBomb) m_pBomb->SetPosition(0.0f, -10000.0f, 0.0f);
+	for (int i = 0; i < 10; i++)
+	{
+		if (m_ppCoinObjects[i])
+		{
+			m_ppCoinObjects[i]->SetColor(XMFLOAT4(4.0f, 3.0f, 0.1f, 1.0f));
+			m_ppCoinObjects[i]->SetPosition(0.0f, -10000.0f, 0.0f);
+		}
+	}
+	for (int i = 0; i < 16; i++)
+	{
+		m_pfExplosionTime[i] = 0.0f;
+		m_pxmf3ExplosionVelocity[i] = XMFLOAT3(0.0f, 0.0f, 0.0f);
+		if (m_ppExplosionObjects[i]) m_ppExplosionObjects[i]->SetPosition(0.0f, -10000.0f, 0.0f);
+	}
+}
 bool CScene::IsTitleNameClicked(HWND hWnd, LPARAM lParam)
 {
 	RECT rcClient;
@@ -569,6 +616,7 @@ bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam,
 		if (m_GameState.m_nScene == GAME_SCENE_MENU)
 		{
 			if (!IsMenuStartClicked(hWnd, lParam)) return(true);
+			ResetLevelState();
 			m_GameState.m_nScene = GAME_SCENE_LEVEL1;
 			if (m_pPlayer && m_pTerrain)
 			{
@@ -597,18 +645,8 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 	{
 		m_GameState.m_nScene = GAME_SCENE_MENU;
 		m_bFireKeyDown = false;
+		ResetMenuCamera();
 
-		if (m_pPlayer)
-		{
-			m_pPlayer->SetPosition(XMFLOAT3(0.0f, 0.0f, 0.0f));
-			CCamera* pCamera = m_pPlayer->GetCamera();
-			if (pCamera)
-			{
-				pCamera->SetOffset(XMFLOAT3(0.0f, 0.0f, -430.0f));
-				pCamera->SetPosition(XMFLOAT3(0.0f, 0.0f, -430.0f));
-			}
-			m_pPlayer->Update(0.0f);
-		}
 		return(true);
 	}
 	return(false);
