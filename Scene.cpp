@@ -396,6 +396,116 @@ void CScene::BuildGameOverObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsComman
 	m_ppGameOverObjects = new CGameObject * [m_nGameOverObjects];
 	for (int i = 0; i < m_nGameOverObjects; i++) m_ppGameOverObjects[i] = vObjects[i];
 }
+void CScene::BuildGameClearObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	vector<CGameObject*> vObjects;
+	CMesh* pTextMesh = new CCubeMesh(pd3dDevice, pd3dCommandList, 5.0f, 5.0f, 5.0f);
+	CMesh* pButtonMesh = new CCubeMesh(pd3dDevice, pd3dCommandList, 5.0f, 5.0f, 5.0f);
+
+	const char* pA[7] = { "01110", "10001", "10001", "11111", "10001", "10001", "10001" };
+	const char* pC[7] = { "01111", "10000", "10000", "10000", "10000", "10000", "01111" };
+	const char* pL[7] = { "10000", "10000", "10000", "10000", "10000", "10000", "11111" };
+	const char* pE[7] = { "11111", "10000", "10000", "11110", "10000", "10000", "11111" };
+	const char* pG[7] = { "01111", "10000", "10000", "10011", "10001", "10001", "01111" };
+	const char* pM[7] = { "10001", "11011", "10101", "10101", "10001", "10001", "10001" };
+	const char* pN[7] = { "10001", "11001", "10101", "10011", "10001", "10001", "10001" };
+	const char* pO[7] = { "01110", "10001", "10001", "10001", "10001", "10001", "01110" };
+	const char* pR[7] = { "11110", "10001", "10001", "11110", "10100", "10010", "10001" };
+	const char* pU[7] = { "10001", "10001", "10001", "10001", "10001", "10001", "01110" };
+	const char* pV[7] = { "10001", "10001", "10001", "10001", "01010", "01010", "00100" };
+
+	auto GetGlyph = [&](char ch) -> const char**
+	{
+		switch (ch)
+		{
+		case 'A': return(pA);
+		case 'C': return(pC);
+		case 'L': return(pL);
+		case 'E': return(pE);
+		case 'G': return(pG);
+		case 'M': return(pM);
+		case 'N': return(pN);
+		case 'O': return(pO);
+		case 'R': return(pR);
+		case 'U': return(pU);
+		case 'V': return(pV);
+		default: return(NULL);
+		}
+	};
+
+	auto AddCube = [&](CMesh* pMesh, float x, float y, float z, XMFLOAT4 color)
+	{
+		CGameObject* pObject = new CGameObject();
+		pObject->SetMesh(pMesh);
+		pObject->m_nMaterials = 1;
+		pObject->m_ppMaterials = new CMaterial * [1];
+		pObject->m_ppMaterials[0] = new CMaterial();
+		pObject->m_ppMaterials[0]->SetPseudoLightingShader();
+		pObject->SetColor(color);
+		pObject->SetPosition(x, y, z);
+		vObjects.push_back(pObject);
+	};
+
+	auto AddLabel = [&](const char* pstrText, float fCenterX, float fCenterY, float fStep, CMesh* pMesh, XMFLOAT4 color)
+	{
+		int nLetters = (int)strlen(pstrText);
+		int nVisible = 0;
+		for (int i = 0; i < nLetters; i++) nVisible += (pstrText[i] == ' ') ? 1 : 5;
+		float fGap = fStep * 1.2f;
+		float fTotalWidth = 0.0f;
+		for (int i = 0; i < nLetters; i++) fTotalWidth += (pstrText[i] == ' ') ? (fStep * 4.0f) : ((5.0f * fStep) + fGap);
+		float fLeft = fCenterX - (fTotalWidth * 0.5f);
+		float fTop = fCenterY + (3.0f * fStep);
+
+		for (int i = 0; i < nLetters; i++)
+		{
+			if (pstrText[i] == ' ')
+			{
+				fLeft += fStep * 4.0f;
+				continue;
+			}
+			const char** ppGlyph = GetGlyph(pstrText[i]);
+			if (ppGlyph)
+			{
+				for (int y = 0; y < 7; y++)
+				{
+					for (int x = 0; x < 5; x++)
+					{
+						if (ppGlyph[y][x] == '1') AddCube(pMesh, fLeft + (x * fStep), fTop - (y * fStep), 0.0f, color);
+					}
+				}
+			}
+			fLeft += (5.0f * fStep) + fGap;
+		}
+	};
+
+	auto AddButton = [&](float fCenterX, float fCenterY, float fWidth, float fHeight, const char* pstrText)
+	{
+		XMFLOAT4 xmf4Color(0.9f, 0.9f, 0.95f, 1.0f);
+		float fLeft = fCenterX - (fWidth * 0.5f);
+		float fRight = fCenterX + (fWidth * 0.5f);
+		float fTop = fCenterY + (fHeight * 0.5f);
+		float fBottom = fCenterY - (fHeight * 0.5f);
+		for (float x = fLeft; x <= fRight; x += 8.0f)
+		{
+			AddCube(pButtonMesh, x, fTop, 0.0f, xmf4Color);
+			AddCube(pButtonMesh, x, fBottom, 0.0f, xmf4Color);
+		}
+		for (float y = fBottom; y <= fTop; y += 8.0f)
+		{
+			AddCube(pButtonMesh, fLeft, y, 0.0f, xmf4Color);
+			AddCube(pButtonMesh, fRight, y, 0.0f, xmf4Color);
+		}
+		AddLabel(pstrText, fCenterX, fCenterY, 4.2f, pButtonMesh, xmf4Color);
+	};
+
+	AddLabel("GAME CLEAR", 0.0f, 95.0f, 9.0f, pTextMesh, XMFLOAT4(0.25f, 0.55f, 4.0f, 1.0f));
+	AddButton(0.0f, -75.0f, 185.0f, 65.0f, "MENU");
+
+	m_nGameClearObjects = (int)vObjects.size();
+	m_ppGameClearObjects = new CGameObject * [m_nGameClearObjects];
+	for (int i = 0; i < m_nGameClearObjects; i++) m_ppGameClearObjects[i] = vObjects[i];
+}
 void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	m_pd3dGraphicsRootSignature = CreateGraphicsRootSignature(pd3dDevice);
@@ -404,6 +514,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	BuildTitleObjects(pd3dDevice, pd3dCommandList);
 	BuildMenuObjects(pd3dDevice, pd3dCommandList);
 	BuildGameOverObjects(pd3dDevice, pd3dCommandList);
+	BuildGameClearObjects(pd3dDevice, pd3dCommandList);
 
 	XMFLOAT3 xmf3TerrainScale(8.0f, 2.0f, 8.0f);
 	m_pTerrain = new CHeightMapTerrain(pd3dDevice, pd3dCommandList, _T("Image/HeightMap.raw"), 257, 257, 257, 257, xmf3TerrainScale);
@@ -543,6 +654,9 @@ void CScene::ReleaseObjects()
 	ReleaseSceneObjects(m_ppGameOverObjects, m_nGameOverObjects);
 	m_ppGameOverObjects = NULL;
 	m_nGameOverObjects = 0;
+	ReleaseSceneObjects(m_ppGameClearObjects, m_nGameClearObjects);
+	m_ppGameClearObjects = NULL;
+	m_nGameClearObjects = 0;
 
 	ReleaseShaderVariables();
 }
@@ -602,6 +716,7 @@ void CScene::ReleaseUploadBuffers()
 	for (int i = 0; i < m_nTitleObjects; i++) if (m_ppTitleObjects[i]) m_ppTitleObjects[i]->ReleaseUploadBuffers();
 	for (int i = 0; i < m_nMenuObjects; i++) if (m_ppMenuObjects[i]) m_ppMenuObjects[i]->ReleaseUploadBuffers();
 	for (int i = 0; i < m_nGameOverObjects; i++) if (m_ppGameOverObjects[i]) m_ppGameOverObjects[i]->ReleaseUploadBuffers();
+	for (int i = 0; i < m_nGameClearObjects; i++) if (m_ppGameClearObjects[i]) m_ppGameClearObjects[i]->ReleaseUploadBuffers();
 	if (m_pBomb) m_pBomb->ReleaseUploadBuffers();
 	for (int i = 0; i < 10; i++) if (m_ppCoinObjects[i]) m_ppCoinObjects[i]->ReleaseUploadBuffers();
 	for (int i = 0; i < 16; i++) if (m_ppExplosionObjects[i]) m_ppExplosionObjects[i]->ReleaseUploadBuffers();
@@ -742,7 +857,7 @@ bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam,
 			if (IsTitleNameClicked(hWnd, lParam)) StartTitleNameExplosion();
 			return(true);
 		}
-		if (m_GameState.m_nScene == GAME_SCENE_GAMEOVER)
+		if ((m_GameState.m_nScene == GAME_SCENE_GAMEOVER) || (m_GameState.m_nScene == GAME_SCENE_GAMECLEAR))
 		{
 			if (IsGameOverMenuClicked(hWnd, lParam))
 			{
@@ -843,6 +958,12 @@ void CScene::AnimateObjects(float fTimeElapsed)
 		return;
 	}
 
+	if (m_GameState.m_nScene == GAME_SCENE_GAMECLEAR)
+	{
+		for (int i = 0; i < m_nGameClearObjects; i++) m_ppGameClearObjects[i]->UpdateTransform(NULL);
+		return;
+	}
+
 	for (int i = 0; i < m_nGameObjects; i++) m_ppGameObjects[i]->Animate(fTimeElapsed, NULL);
 
 	if (!m_bGameOver && !m_bGameClear && m_pPlayer)
@@ -909,7 +1030,12 @@ void CScene::AnimateObjects(float fTimeElapsed)
 				m_pBomb->SetPosition(0.0f, -10000.0f, 0.0f);
 				m_bBombActive = false;
 				if (m_nCoins < 10) m_nCoins++;
-				if (m_nCoins >= 10) m_bGameClear = true;
+				if (m_nCoins >= 10)
+				{
+					 m_bGameClear = true;
+					 m_GameState.m_nScene = GAME_SCENE_GAMECLEAR;
+					 ResetMenuCamera();
+				}
 				break;
 			}
 		}
@@ -966,6 +1092,11 @@ void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera
 	if (m_GameState.m_nScene == GAME_SCENE_GAMEOVER)
 	{
 		RenderSceneObjects(pd3dCommandList, pCamera, m_ppGameOverObjects, m_nGameOverObjects);
+		return;
+	}
+	if (m_GameState.m_nScene == GAME_SCENE_GAMECLEAR)
+	{
+		RenderSceneObjects(pd3dCommandList, pCamera, m_ppGameClearObjects, m_nGameClearObjects);
 		return;
 	}
 

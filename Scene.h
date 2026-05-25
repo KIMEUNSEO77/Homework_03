@@ -12,7 +12,8 @@ enum GAME_SCENE_ID
 	GAME_SCENE_TITLE = 0,
 	GAME_SCENE_MENU = 1,
 	GAME_SCENE_LEVEL1 = 2,
-	GAME_SCENE_GAMEOVER = 3
+	GAME_SCENE_GAMEOVER = 3,
+	GAME_SCENE_GAMECLEAR = 4
 };
 
 struct GAME_STATE
@@ -55,6 +56,7 @@ public:
 	void BuildTitleObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	void BuildMenuObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	void BuildGameOverObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	void BuildGameClearObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	void ReleaseSceneObjects(CGameObject** ppObjects, int nObjects);
 	void RenderSceneObjects(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CGameObject** ppObjects, int nObjects);
 	bool IsTitleNameClicked(HWND hWnd, LPARAM lParam);
@@ -84,6 +86,8 @@ public:
 	int								 m_nMenuObjects = 0;
 	CGameObject**				 m_ppGameOverObjects = NULL;
 	int								 m_nGameOverObjects = 0;
+	CGameObject**				 m_ppGameClearObjects = NULL;
+	int							 m_nGameClearObjects = 0;
 	bool								m_bHouseActive[16] = { true, true, true, true };
 	bool								m_bBombActive = false;
 	bool								m_bFireKeyDown = false;
