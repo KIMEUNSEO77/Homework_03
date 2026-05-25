@@ -56,6 +56,7 @@ public:
 	void ReleaseSceneObjects(CGameObject** ppObjects, int nObjects);
 	void RenderSceneObjects(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CGameObject** ppObjects, int nObjects);
 	bool IsTitleNameClicked(HWND hWnd, LPARAM lParam);
+	bool IsMenuStartClicked(HWND hWnd, LPARAM lParam);
 	void StartTitleNameExplosion();
 
 	CPlayer*					m_pPlayer = NULL;

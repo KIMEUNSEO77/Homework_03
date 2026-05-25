@@ -173,17 +173,119 @@ void CScene::BuildTitleObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 void CScene::BuildMenuObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	vector<CGameObject*> vObjects;
-	const float fY[6] = { 90.0f, 55.0f, 20.0f, -15.0f, -50.0f, -85.0f };
-	for (int i = 0; i < 6; i++)
+	CMesh* pButtonMesh = new CCubeMesh(pd3dDevice, pd3dCommandList, 5.0f, 5.0f, 5.0f);
+	CMesh* pTextMesh = new CCubeMesh(pd3dDevice, pd3dCommandList, 3.0f, 3.0f, 3.0f);
+
+	const char* pA[7] = { "01110", "10001", "10001", "11111", "10001", "10001", "10001" };
+	const char* pD[7] = { "11110", "10001", "10001", "10001", "10001", "10001", "11110" };
+	const char* pE[7] = { "11111", "10000", "10000", "11110", "10000", "10000", "11111" };
+	const char* pI[7] = { "11111", "00100", "00100", "00100", "00100", "00100", "11111" };
+	const char* pL[7] = { "10000", "10000", "10000", "10000", "10000", "10000", "11111" };
+	const char* pN[7] = { "10001", "11001", "10101", "10011", "10001", "10001", "10001" };
+	const char* pO[7] = { "01110", "10001", "10001", "10001", "10001", "10001", "01110" };
+	const char* pR[7] = { "11110", "10001", "10001", "11110", "10100", "10010", "10001" };
+	const char* pS[7] = { "01111", "10000", "10000", "01110", "00001", "00001", "11110" };
+	const char* pT[7] = { "11111", "00100", "00100", "00100", "00100", "00100", "00100" };
+	const char* pU[7] = { "10001", "10001", "10001", "10001", "10001", "10001", "01110" };
+	const char* pV[7] = { "10001", "10001", "10001", "10001", "01010", "01010", "00100" };
+	const char* pHyphen[7] = { "00000", "00000", "00000", "11111", "00000", "00000", "00000" };
+	const char* p1[7] = { "00100", "01100", "00100", "00100", "00100", "00100", "11111" };
+	const char* p2[7] = { "11110", "00001", "00001", "11110", "10000", "10000", "11111" };
+	const char* p3[7] = { "11110", "00001", "00001", "01110", "00001", "00001", "11110" };
+
+	auto GetGlyph = [&](char ch) -> const char**
 	{
-		int nWidth = (i == 4) ? 16 : 24;
-		for (int x = 0; x < nWidth; x++)
+		switch (ch)
 		{
-			CGameObject* pObject = CreateColorCube(pd3dDevice, pd3dCommandList, (i == 4) ? XMFLOAT4(0.15f, 1.0f, 0.2f, 1.0f) : XMFLOAT4(0.8f, 0.8f, 0.85f, 1.0f), 5.0f);
-			pObject->SetPosition(-(nWidth * 2.5f) + (x * 5.0f), fY[i], 0.0f);
-			vObjects.push_back(pObject);
+		case 'A': return(pA);
+		case 'D': return(pD);
+		case 'E': return(pE);
+		case 'I': return(pI);
+		case 'L': return(pL);
+		case 'N': return(pN);
+		case 'O': return(pO);
+		case 'R': return(pR);
+		case 'S': return(pS);
+		case 'T': return(pT);
+		case 'U': return(pU);
+		case 'V': return(pV);
+		case '-': return(pHyphen);
+		case '1': return(p1);
+		case '2': return(p2);
+		case '3': return(p3);
+		default: return(NULL);
 		}
-	}
+	};
+
+	auto AddCube = [&](CMesh* pMesh, float x, float y, XMFLOAT4 color)
+	{
+		CGameObject* pObject = new CGameObject();
+		pObject->SetMesh(pMesh);
+		pObject->m_nMaterials = 1;
+		pObject->m_ppMaterials = new CMaterial * [1];
+		pObject->m_ppMaterials[0] = new CMaterial();
+		pObject->m_ppMaterials[0]->SetPseudoLightingShader();
+		pObject->SetColor(color);
+		pObject->SetPosition(x, y, 0.0f);
+		vObjects.push_back(pObject);
+	};
+
+	auto AddLabel = [&](const char* pstrText, float fCenterX, float fCenterY, XMFLOAT4 color)
+	{
+		const float fStep = 4.0f;
+		const float fGap = 3.0f;
+		int nLetters = (int)strlen(pstrText);
+		float fLetterWidth = 4.0f * fStep;
+		float fTotalWidth = (nLetters * fLetterWidth) + ((nLetters - 1) * fGap);
+		float fLeft = fCenterX - (fTotalWidth * 0.5f);
+		float fTop = fCenterY + (3.0f * fStep);
+
+		for (int i = 0; i < nLetters; i++)
+		{
+			const char** ppGlyph = GetGlyph(pstrText[i]);
+			if (ppGlyph)
+			{
+				for (int y = 0; y < 7; y++)
+				{
+					for (int x = 0; x < 5; x++)
+					{
+						if (ppGlyph[y][x] == '1') AddCube(pTextMesh, fLeft + (i * (fLetterWidth + fGap)) + (x * fStep), fTop - (y * fStep), color);
+					}
+				}
+			}
+		}
+	};
+
+	auto AddButton = [&](float fCenterX, float fCenterY, float fWidth, float fHeight, const char* pstrText, XMFLOAT4 xmf4Color)
+	{
+		const float fStep = 8.0f;
+		float fLeft = fCenterX - (fWidth * 0.5f);
+		float fRight = fCenterX + (fWidth * 0.5f);
+		float fTop = fCenterY + (fHeight * 0.5f);
+		float fBottom = fCenterY - (fHeight * 0.5f);
+
+		for (float x = fLeft; x <= fRight; x += fStep)
+		{
+			AddCube(pButtonMesh, x, fTop, xmf4Color);
+			AddCube(pButtonMesh, x, fBottom, xmf4Color);
+		}
+		for (float y = fBottom; y <= fTop; y += fStep)
+		{
+			AddCube(pButtonMesh, fLeft, y, xmf4Color);
+			AddCube(pButtonMesh, fRight, y, xmf4Color);
+		}
+		AddLabel(pstrText, fCenterX, fCenterY, xmf4Color);
+	};
+
+	XMFLOAT4 xmf4White(0.85f, 0.85f, 0.9f, 1.0f);
+	XMFLOAT4 xmf4Green(0.1f, 1.0f, 0.2f, 1.0f);
+	AddButton(-255.0f, 90.0f, 180.0f, 60.0f, "TUTORIAL", xmf4White);
+	AddButton(-85.0f, 90.0f, 145.0f, 60.0f, "LEVEL-1", xmf4White);
+	AddButton(80.0f, 90.0f, 145.0f, 60.0f, "LEVEL-2", xmf4White);
+	AddButton(245.0f, 90.0f, 145.0f, 60.0f, "LEVEL-3", xmf4White);
+	AddButton(0.0f, -25.0f, 200.0f, 65.0f, "START", xmf4Green);
+	AddButton(0.0f, -125.0f, 200.0f, 65.0f, "END", xmf4White);
+
 	m_nMenuObjects = (int)vObjects.size();
 	m_ppMenuObjects = new CGameObject * [m_nMenuObjects];
 	for (int i = 0; i < m_nMenuObjects; i++) m_ppMenuObjects[i] = vObjects[i];
@@ -412,6 +514,23 @@ bool CScene::IsTitleNameClicked(HWND hWnd, LPARAM lParam)
 	return((x >= nLeft) && (x <= nRight) && (y >= nTop) && (y <= nBottom));
 }
 
+bool CScene::IsMenuStartClicked(HWND hWnd, LPARAM lParam)
+{
+	RECT rcClient;
+	::GetClientRect(hWnd, &rcClient);
+	int nWidth = rcClient.right - rcClient.left;
+	int nHeight = rcClient.bottom - rcClient.top;
+	if ((nWidth <= 0) || (nHeight <= 0)) return(false);
+
+	int x = LOWORD(lParam);
+	int y = HIWORD(lParam);
+	int nLeft = int(nWidth * 0.34f);
+	int nRight = int(nWidth * 0.66f);
+	int nTop = int(nHeight * 0.49f);
+	int nBottom = int(nHeight * 0.64f);
+
+	return((x >= nLeft) && (x <= nRight) && (y >= nTop) && (y <= nBottom));
+}
 void CScene::StartTitleNameExplosion()
 {
 	if (m_bTitleNameExploding || !m_pxmf3TitleObjectVelocity) return;
@@ -449,6 +568,7 @@ bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam,
 		}
 		if (m_GameState.m_nScene == GAME_SCENE_MENU)
 		{
+			if (!IsMenuStartClicked(hWnd, lParam)) return(true);
 			m_GameState.m_nScene = GAME_SCENE_LEVEL1;
 			if (m_pPlayer && m_pTerrain)
 			{
