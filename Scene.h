@@ -11,7 +11,8 @@ enum GAME_SCENE_ID
 {
 	GAME_SCENE_TITLE = 0,
 	GAME_SCENE_MENU = 1,
-	GAME_SCENE_LEVEL1 = 2
+	GAME_SCENE_LEVEL1 = 2,
+	GAME_SCENE_GAMEOVER = 3
 };
 
 struct GAME_STATE
@@ -53,10 +54,12 @@ public:
 	CGameObject* CreateColorCube(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT4 xmf4Color, float fSize);
 	void BuildTitleObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	void BuildMenuObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	void BuildGameOverObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	void ReleaseSceneObjects(CGameObject** ppObjects, int nObjects);
 	void RenderSceneObjects(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, CGameObject** ppObjects, int nObjects);
 	bool IsTitleNameClicked(HWND hWnd, LPARAM lParam);
 	bool IsMenuStartClicked(HWND hWnd, LPARAM lParam);
+	bool IsGameOverMenuClicked(HWND hWnd, LPARAM lParam);
 	void ResetMenuCamera();
 	void ResetLevelState();
 	void StartTitleNameExplosion();
@@ -79,6 +82,8 @@ public:
 	XMFLOAT3*				 m_pxmf3TitleObjectVelocity = NULL;
 	CGameObject**				 m_ppMenuObjects = NULL;
 	int								 m_nMenuObjects = 0;
+	CGameObject**				 m_ppGameOverObjects = NULL;
+	int								 m_nGameOverObjects = 0;
 	bool								m_bHouseActive[16] = { true, true, true, true };
 	bool								m_bBombActive = false;
 	bool								m_bFireKeyDown = false;
