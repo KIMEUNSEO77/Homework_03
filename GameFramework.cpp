@@ -301,14 +301,14 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 
 void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
-	if (m_pScene) m_pScene->OnProcessingKeyboardMessage(hWnd, nMessageID, wParam, lParam);
+	bool bProcessedByScene = (m_pScene) ? m_pScene->OnProcessingKeyboardMessage(hWnd, nMessageID, wParam, lParam) : false;
 	switch (nMessageID)
 	{
 	case WM_KEYUP:
 		switch (wParam)
 		{
 		case VK_ESCAPE:
-			::PostQuitMessage(0);
+			if (!bProcessedByScene) ::PostQuitMessage(0);
 			break;
 		case VK_RETURN:
 			break;

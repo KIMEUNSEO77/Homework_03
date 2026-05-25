@@ -593,6 +593,24 @@ bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam,
 }
 bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
+	if ((nMessageID == WM_KEYUP) && (wParam == VK_ESCAPE) && (m_GameState.m_nScene == GAME_SCENE_LEVEL1))
+	{
+		m_GameState.m_nScene = GAME_SCENE_MENU;
+		m_bFireKeyDown = false;
+
+		if (m_pPlayer)
+		{
+			m_pPlayer->SetPosition(XMFLOAT3(0.0f, 0.0f, 0.0f));
+			CCamera* pCamera = m_pPlayer->GetCamera();
+			if (pCamera)
+			{
+				pCamera->SetOffset(XMFLOAT3(0.0f, 0.0f, -430.0f));
+				pCamera->SetPosition(XMFLOAT3(0.0f, 0.0f, -430.0f));
+			}
+			m_pPlayer->Update(0.0f);
+		}
+		return(true);
+	}
 	return(false);
 }
 bool CScene::ProcessInput(UCHAR* pKeysBuffer)
