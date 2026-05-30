@@ -70,6 +70,156 @@ namespace
 	}
 }
 
+
+static CGameObject* CreateTextCube(vector<CGameObject*>& vObjects, CMesh* pMesh, float x, float y, float z, XMFLOAT4 xmf4Color)
+{
+	CGameObject* pObject = new CGameObject();
+
+	pObject->SetMesh(pMesh);
+	pObject->m_nMaterials = 1;
+	pObject->m_ppMaterials = new CMaterial * [1];
+	pObject->m_ppMaterials[0] = new CMaterial();
+	pObject->m_ppMaterials[0]->SetPseudoLightingShader();
+	pObject->SetColor(xmf4Color);
+	pObject->SetPosition(x, y, z);
+	vObjects.push_back(pObject);
+
+	return(pObject);
+}
+
+static int GetPatternWidth(const char** ppPattern)
+{
+	int nWidth = 0;
+	while (ppPattern[0][nWidth] != '\0') nWidth++;
+	return(nWidth);
+}
+
+static int AddPatternGlyph(vector<CGameObject*>& vObjects, CMesh* pMesh, const char** ppPattern, float fLeft, float fTop, float fZ, float fStep, XMFLOAT4 xmf4Color)
+{
+	int nMaxWidth = 0;
+	for (int y = 0; y < 7; y++)
+	{
+		int nWidth = 0;
+		while (ppPattern[y][nWidth] != '\0') nWidth++;
+		if (nMaxWidth < nWidth) nMaxWidth = nWidth;
+
+		for (int x = 0; x < nWidth; x++)
+		{
+			if (ppPattern[y][x] == '1') CreateTextCube(vObjects, pMesh, fLeft + (x * fStep), fTop - (y * fStep), fZ, xmf4Color);
+		}
+	}
+	return(nMaxWidth);
+}
+
+static const char* g_pA[7] = { "01110", "10001", "10001", "11111", "10001", "10001", "10001" };
+static const char* g_pC[7] = { "01111", "10000", "10000", "10000", "10000", "10000", "01111" };
+static const char* g_pD[7] = { "11110", "10001", "10001", "10001", "10001", "10001", "11110" };
+static const char* g_pE[7] = { "11111", "10000", "10000", "11110", "10000", "10000", "11111" };
+static const char* g_pG[7] = { "01111", "10000", "10000", "10011", "10001", "10001", "01111" };
+static const char* g_pI[7] = { "11111", "00100", "00100", "00100", "00100", "00100", "11111" };
+static const char* g_pL[7] = { "10000", "10000", "10000", "10000", "10000", "10000", "11111" };
+static const char* g_pM[7] = { "10001", "11011", "10101", "10101", "10001", "10001", "10001" };
+static const char* g_pN[7] = { "10001", "11001", "10101", "10011", "10001", "10001", "10001" };
+static const char* g_pO[7] = { "01110", "10001", "10001", "10001", "10001", "10001", "01110" };
+static const char* g_pR[7] = { "11110", "10001", "10001", "11110", "10100", "10010", "10001" };
+static const char* g_pS[7] = { "01111", "10000", "10000", "01110", "00001", "00001", "11110" };
+static const char* g_pT[7] = { "11111", "00100", "00100", "00100", "00100", "00100", "00100" };
+static const char* g_pU[7] = { "10001", "10001", "10001", "10001", "10001", "10001", "01110" };
+static const char* g_pV[7] = { "10001", "10001", "10001", "10001", "01010", "01010", "00100" };
+static const char* g_pHyphen[7] = { "00000", "00000", "00000", "11111", "00000", "00000", "00000" };
+static const char* g_p1[7] = { "00100", "01100", "00100", "00100", "00100", "00100", "11111" };
+static const char* g_p2[7] = { "11110", "00001", "00001", "11110", "10000", "10000", "11111" };
+static const char* g_p3[7] = { "11110", "00001", "00001", "01110", "00001", "00001", "11110" };
+
+static const char** GetEnglishGlyph(char ch)
+{
+	switch (ch)
+	{
+	case 'A': return(g_pA);
+	case 'C': return(g_pC);
+	case 'D': return(g_pD);
+	case 'E': return(g_pE);
+	case 'G': return(g_pG);
+	case 'I': return(g_pI);
+	case 'L': return(g_pL);
+	case 'M': return(g_pM);
+	case 'N': return(g_pN);
+	case 'O': return(g_pO);
+	case 'R': return(g_pR);
+	case 'S': return(g_pS);
+	case 'T': return(g_pT);
+	case 'U': return(g_pU);
+	case 'V': return(g_pV);
+	case '-': return(g_pHyphen);
+	case '1': return(g_p1);
+	case '2': return(g_p2);
+	case '3': return(g_p3);
+	default: return(NULL);
+	}
+}
+
+static void AddCubeLabel(vector<CGameObject*>& vObjects, CMesh* pMesh, const char* pstrText, float fCenterX, float fCenterY, float fZ, float fStep, float fGap, XMFLOAT4 xmf4Color)
+{
+	float fTotalWidth = 0.0f;
+	int nLetters = (int)strlen(pstrText);
+	for (int i = 0; i < nLetters; i++)
+	{
+		const char** ppGlyph = GetEnglishGlyph(pstrText[i]);
+		fTotalWidth += (pstrText[i] == ' ') ? (fStep * 4.0f) : ((ppGlyph ? GetPatternWidth(ppGlyph) : 5) * fStep);
+		if (i < (nLetters - 1)) fTotalWidth += fGap;
+	}
+
+	float fLeft = fCenterX - (fTotalWidth * 0.5f);
+	float fTop = fCenterY + (3.0f * fStep);
+	for (int i = 0; i < nLetters; i++)
+	{
+		if (pstrText[i] == ' ')
+		{
+			fLeft += (fStep * 4.0f) + fGap;
+			continue;
+		}
+
+		const char** ppGlyph = GetEnglishGlyph(pstrText[i]);
+		if (ppGlyph)
+		{
+			int nWidth = AddPatternGlyph(vObjects, pMesh, ppGlyph, fLeft, fTop, fZ, fStep, xmf4Color);
+			fLeft += (nWidth * fStep) + fGap;
+		}
+	}
+}
+
+static void AddButtonFrame(vector<CGameObject*>& vObjects, CMesh* pMesh, float fCenterX, float fCenterY, float fZ, float fWidth, float fHeight, float fStep, XMFLOAT4 xmf4Color)
+{
+	float fLeft = fCenterX - (fWidth * 0.5f);
+	float fRight = fCenterX + (fWidth * 0.5f);
+	float fTop = fCenterY + (fHeight * 0.5f);
+	float fBottom = fCenterY - (fHeight * 0.5f);
+
+	for (float x = fLeft; x <= fRight; x += fStep)
+	{
+		CreateTextCube(vObjects, pMesh, x, fTop, fZ, xmf4Color);
+		CreateTextCube(vObjects, pMesh, x, fBottom, fZ, xmf4Color);
+	}
+	for (float y = fBottom; y <= fTop; y += fStep)
+	{
+		CreateTextCube(vObjects, pMesh, fLeft, y, fZ, xmf4Color);
+		CreateTextCube(vObjects, pMesh, fRight, y, fZ, xmf4Color);
+	}
+}
+
+static void AddCubeButton(vector<CGameObject*>& vObjects, CMesh* pButtonMesh, CMesh* pTextMesh, const char* pstrText, float fCenterX, float fCenterY, float fWidth, float fHeight, XMFLOAT4 xmf4Color)
+{
+	AddButtonFrame(vObjects, pButtonMesh, fCenterX, fCenterY, 0.0f, fWidth, fHeight, 8.0f, xmf4Color);
+	AddCubeLabel(vObjects, pTextMesh, pstrText, fCenterX, fCenterY, 0.0f, 4.0f, 3.0f, xmf4Color);
+}
+
+static void AddResultButton(vector<CGameObject*>& vObjects, CMesh* pButtonMesh, const char* pstrText, float fCenterX, float fCenterY, float fWidth, float fHeight)
+{
+	XMFLOAT4 xmf4Color(0.9f, 0.9f, 0.95f, 1.0f);
+	AddButtonFrame(vObjects, pButtonMesh, fCenterX, fCenterY, 0.0f, fWidth, fHeight, 8.0f, xmf4Color);
+	AddCubeLabel(vObjects, pButtonMesh, pstrText, fCenterX, fCenterY, 0.0f, 4.2f, 5.0f, xmf4Color);
+}
+
 CScene::CScene()
 {
 }
@@ -105,7 +255,7 @@ void CScene::RenderSceneObjects(ID3D12GraphicsCommandList* pd3dCommandList, CCam
 	for (int i = 0; i < nObjects; i++) if (ppObjects[i]) ppObjects[i]->Render(pd3dCommandList, pCamera);
 }
 
-// 시작 화면 글자	 생성
+// 시작 화면 글자 생성
 void CScene::BuildTitleObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	vector<CGameObject*> vObjects;
@@ -114,7 +264,6 @@ void CScene::BuildTitleObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 	const char* p3[7] = { "11110", "00001", "00001", "01110", "00001", "00001", "11110" };
 	const char* pD[7] = { "11110", "10001", "10001", "10001", "10001", "10001", "11110" };
 	const char* p1[7] = { "00100", "01100", "00100", "00100", "00100", "00100", "11111" };
-
 	const char* pGe[7] = { "1110101", "0010101", "0010101", "0011101", "0010101", "0010101", "0010101" };
 	const char* pIm[7] = { "0111001", "1000101", "1000101", "0111001", "1111100", "1000100", "1111100" };
 	const char* pPeu[7] = { "11111111", "00100100", "00100100", "11111111", "00000000", "11111111", "00000000" };
@@ -122,7 +271,6 @@ void CScene::BuildTitleObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 	const char* pGeu[7] = { "111110", "000010", "000010", "000010", "000000", "111110", "000000" };
 	const char* pRae[7] = { "111001001", "001001001", "001001001", "111101101", "100001001", "111101001", "000001001" };
 	const char* pMing[7] = { "111101", "100101", "111101", "000100", "011100", "100010", "011100" };
-
 	const char* pKim[7] = { "11101", "00101", "00101", "00101", "11111", "10001", "11111" };
 	const char* pEun[7] = { "01110", "10001", "10001", "01110", "11111", "10000", "11111" };
 	const char* pSeo[7] = { "00001", "00101", "01001", "10011", "01001", "00001", "00001" };
@@ -130,43 +278,10 @@ void CScene::BuildTitleObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 	const char** ppTitle[10] = { p3, pD, pGe, pIm, pPeu, pRo, pGeu, pRae, pMing, p1 };
 	const char** ppName[3] = { pKim, pEun, pSeo };
 
-	auto AddBlock = [&](float x, float y, float z, XMFLOAT4 color)
-	{
-		CGameObject* pObject = new CGameObject();
-
-		pObject->SetMesh(pMesh);
-		pObject->m_nMaterials = 1;
-		pObject->m_ppMaterials = new CMaterial * [1];
-		pObject->m_ppMaterials[0] = new CMaterial();
-		pObject->m_ppMaterials[0]->SetPseudoLightingShader();
-		pObject->SetColor(color);
-		pObject->SetPosition(x, y, z);
-		vObjects.push_back(pObject);
-	};
-
-	auto AddGlyph = [&](const char** ppRows, float fLeft, float fTop, XMFLOAT4 color) -> int
-	{
-		int nMaxWidth = 0;
-
-		for (int y = 0; y < 7; y++)
-		{
-			int nWidth = 0;
-			while (ppRows[y][nWidth] != '\0') nWidth++;
-			if (nMaxWidth < nWidth) nMaxWidth = nWidth;
-
-			for (int x = 0; x < nWidth; x++)
-			{
-				if (ppRows[y][x] == '1') AddBlock(fLeft + (x * 5.0f), fTop - (y * 5.0f), 0.0f, color);
-			}
-		}
-		return(nMaxWidth);
-	};
-
 	float fX = -210.0f;
-
 	for (int i = 0; i < 10; i++)
 	{
-		int nWidth = AddGlyph(ppTitle[i], fX, 55.0f, XMFLOAT4(0.15f, 0.75f, 1.0f, 1.0f));
+		int nWidth = AddPatternGlyph(vObjects, pMesh, ppTitle[i], fX, 55.0f, 0.0f, 5.0f, XMFLOAT4(0.15f, 0.75f, 1.0f, 1.0f));
 		fX += (nWidth * 5.0f) + 8.0f;
 		if ((i == 1) || (i == 3) || (i == 8)) fX += 14.0f;
 	}
@@ -175,16 +290,19 @@ void CScene::BuildTitleObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 	m_nTitleNameStart = (int)vObjects.size();
 	for (int i = 0; i < 3; i++)
 	{
-		AddGlyph(ppName[i], fX, -30.0f, XMFLOAT4(1.0f, 0.85f, 0.12f, 1.0f));
+		AddPatternGlyph(vObjects, pMesh, ppName[i], fX, -30.0f, 0.0f, 5.0f, XMFLOAT4(1.0f, 0.85f, 0.12f, 1.0f));
 		fX += 32.0f;
 	}
 
 	m_nTitleNameObjects = (int)vObjects.size() - m_nTitleNameStart;
 	m_nTitleObjects = (int)vObjects.size();
 	m_ppTitleObjects = new CGameObject * [m_nTitleObjects];
+
 	for (int i = 0; i < m_nTitleObjects; i++) m_ppTitleObjects[i] = vObjects[i];
+
 	delete[] m_pxmf3TitleObjectVelocity;
 	m_pxmf3TitleObjectVelocity = new XMFLOAT3[m_nTitleObjects];
+
 	for (int i = 0; i < m_nTitleObjects; i++) m_pxmf3TitleObjectVelocity[i] = XMFLOAT3(0.0f, 0.0f, 0.0f);
 }
 
@@ -194,116 +312,15 @@ void CScene::BuildMenuObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	vector<CGameObject*> vObjects;
 	CMesh* pButtonMesh = new CCubeMesh(pd3dDevice, pd3dCommandList, 5.0f, 5.0f, 5.0f);
 	CMesh* pTextMesh = new CCubeMesh(pd3dDevice, pd3dCommandList, 3.0f, 3.0f, 3.0f);
-
-	const char* pA[7] = { "01110", "10001", "10001", "11111", "10001", "10001", "10001" };
-	const char* pD[7] = { "11110", "10001", "10001", "10001", "10001", "10001", "11110" };
-	const char* pE[7] = { "11111", "10000", "10000", "11110", "10000", "10000", "11111" };
-	const char* pI[7] = { "11111", "00100", "00100", "00100", "00100", "00100", "11111" };
-	const char* pL[7] = { "10000", "10000", "10000", "10000", "10000", "10000", "11111" };
-	const char* pN[7] = { "10001", "11001", "10101", "10011", "10001", "10001", "10001" };
-	const char* pO[7] = { "01110", "10001", "10001", "10001", "10001", "10001", "01110" };
-	const char* pR[7] = { "11110", "10001", "10001", "11110", "10100", "10010", "10001" };
-	const char* pS[7] = { "01111", "10000", "10000", "01110", "00001", "00001", "11110" };
-	const char* pT[7] = { "11111", "00100", "00100", "00100", "00100", "00100", "00100" };
-	const char* pU[7] = { "10001", "10001", "10001", "10001", "10001", "10001", "01110" };
-	const char* pV[7] = { "10001", "10001", "10001", "10001", "01010", "01010", "00100" };
-	const char* pHyphen[7] = { "00000", "00000", "00000", "11111", "00000", "00000", "00000" };
-	const char* p1[7] = { "00100", "01100", "00100", "00100", "00100", "00100", "11111" };
-	const char* p2[7] = { "11110", "00001", "00001", "11110", "10000", "10000", "11111" };
-	const char* p3[7] = { "11110", "00001", "00001", "01110", "00001", "00001", "11110" };
-
-	auto GetGlyph = [&](char ch) -> const char**
-	{
-		switch (ch)
-		{
-		case 'A': return(pA);
-		case 'D': return(pD);
-		case 'E': return(pE);
-		case 'I': return(pI);
-		case 'L': return(pL);
-		case 'N': return(pN);
-		case 'O': return(pO);
-		case 'R': return(pR);
-		case 'S': return(pS);
-		case 'T': return(pT);
-		case 'U': return(pU);
-		case 'V': return(pV);
-		case '-': return(pHyphen);
-		case '1': return(p1);
-		case '2': return(p2);
-		case '3': return(p3);
-		default: return(NULL);
-		}
-	};
-
-	auto AddCube = [&](CMesh* pMesh, float x, float y, XMFLOAT4 color)
-	{
-		CGameObject* pObject = new CGameObject();
-		pObject->SetMesh(pMesh);
-		pObject->m_nMaterials = 1;
-		pObject->m_ppMaterials = new CMaterial * [1];
-		pObject->m_ppMaterials[0] = new CMaterial();
-		pObject->m_ppMaterials[0]->SetPseudoLightingShader();
-		pObject->SetColor(color);
-		pObject->SetPosition(x, y, 0.0f);
-		vObjects.push_back(pObject);
-	};
-
-	auto AddLabel = [&](const char* pstrText, float fCenterX, float fCenterY, XMFLOAT4 color)
-	{
-		const float fStep = 4.0f;
-		const float fGap = 3.0f;
-		int nLetters = (int)strlen(pstrText);
-		float fLetterWidth = 4.0f * fStep;
-		float fTotalWidth = (nLetters * fLetterWidth) + ((nLetters - 1) * fGap);
-		float fLeft = fCenterX - (fTotalWidth * 0.5f);
-		float fTop = fCenterY + (3.0f * fStep);
-
-		for (int i = 0; i < nLetters; i++)
-		{
-			const char** ppGlyph = GetGlyph(pstrText[i]);
-			if (ppGlyph)
-			{
-				for (int y = 0; y < 7; y++)
-				{
-					for (int x = 0; x < 5; x++)
-					{
-						if (ppGlyph[y][x] == '1') AddCube(pTextMesh, fLeft + (i * (fLetterWidth + fGap)) + (x * fStep), fTop - (y * fStep), color);
-					}
-				}
-			}
-		}
-	};
-
-	auto AddButton = [&](float fCenterX, float fCenterY, float fWidth, float fHeight, const char* pstrText, XMFLOAT4 xmf4Color)
-	{
-		const float fStep = 8.0f;
-		float fLeft = fCenterX - (fWidth * 0.5f);
-		float fRight = fCenterX + (fWidth * 0.5f);
-		float fTop = fCenterY + (fHeight * 0.5f);
-		float fBottom = fCenterY - (fHeight * 0.5f);
-
-		for (float x = fLeft; x <= fRight; x += fStep)
-		{
-			AddCube(pButtonMesh, x, fTop, xmf4Color);
-			AddCube(pButtonMesh, x, fBottom, xmf4Color);
-		}
-		for (float y = fBottom; y <= fTop; y += fStep)
-		{
-			AddCube(pButtonMesh, fLeft, y, xmf4Color);
-			AddCube(pButtonMesh, fRight, y, xmf4Color);
-		}
-		AddLabel(pstrText, fCenterX, fCenterY, xmf4Color);
-	};
-
 	XMFLOAT4 xmf4White(0.85f, 0.85f, 0.9f, 1.0f);
 	XMFLOAT4 xmf4Green(0.1f, 1.0f, 0.2f, 1.0f);
-	AddButton(-255.0f, 90.0f, 180.0f, 60.0f, "TUTORIAL", xmf4White);
-	AddButton(-85.0f, 90.0f, 145.0f, 60.0f, "LEVEL-1", xmf4White);
-	AddButton(80.0f, 90.0f, 145.0f, 60.0f, "LEVEL-2", xmf4White);
-	AddButton(245.0f, 90.0f, 145.0f, 60.0f, "LEVEL-3", xmf4White);
-	AddButton(0.0f, -25.0f, 200.0f, 65.0f, "START", xmf4Green);
-	AddButton(0.0f, -125.0f, 200.0f, 65.0f, "END", xmf4White);
+
+	AddCubeButton(vObjects, pButtonMesh, pTextMesh, "TUTORIAL", -255.0f, 90.0f, 180.0f, 60.0f, xmf4White);
+	AddCubeButton(vObjects, pButtonMesh, pTextMesh, "LEVEL-1", -85.0f, 90.0f, 145.0f, 60.0f, xmf4White);
+	AddCubeButton(vObjects, pButtonMesh, pTextMesh, "LEVEL-2", 80.0f, 90.0f, 145.0f, 60.0f, xmf4White);
+	AddCubeButton(vObjects, pButtonMesh, pTextMesh, "LEVEL-3", 245.0f, 90.0f, 145.0f, 60.0f, xmf4White);
+	AddCubeButton(vObjects, pButtonMesh, pTextMesh, "START", 0.0f, -25.0f, 200.0f, 65.0f, xmf4Green);
+	AddCubeButton(vObjects, pButtonMesh, pTextMesh, "END", 0.0f, -125.0f, 200.0f, 65.0f, xmf4White);
 
 	m_nMenuObjects = (int)vObjects.size();
 	m_ppMenuObjects = new CGameObject * [m_nMenuObjects];
@@ -317,101 +334,8 @@ void CScene::BuildGameOverObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsComman
 	CMesh* pTextMesh = new CCubeMesh(pd3dDevice, pd3dCommandList, 5.0f, 5.0f, 5.0f);
 	CMesh* pButtonMesh = new CCubeMesh(pd3dDevice, pd3dCommandList, 5.0f, 5.0f, 5.0f);
 
-	const char* pA[7] = { "01110", "10001", "10001", "11111", "10001", "10001", "10001" };
-	const char* pE[7] = { "11111", "10000", "10000", "11110", "10000", "10000", "11111" };
-	const char* pG[7] = { "01111", "10000", "10000", "10011", "10001", "10001", "01111" };
-	const char* pM[7] = { "10001", "11011", "10101", "10101", "10001", "10001", "10001" };
-	const char* pN[7] = { "10001", "11001", "10101", "10011", "10001", "10001", "10001" };
-	const char* pO[7] = { "01110", "10001", "10001", "10001", "10001", "10001", "01110" };
-	const char* pR[7] = { "11110", "10001", "10001", "11110", "10100", "10010", "10001" };
-	const char* pU[7] = { "10001", "10001", "10001", "10001", "10001", "10001", "01110" };
-	const char* pV[7] = { "10001", "10001", "10001", "10001", "01010", "01010", "00100" };
-
-	auto GetGlyph = [&](char ch) -> const char**
-	{
-		switch (ch)
-		{
-		case 'A': return(pA);
-		case 'E': return(pE);
-		case 'G': return(pG);
-		case 'M': return(pM);
-		case 'N': return(pN);
-		case 'O': return(pO);
-		case 'R': return(pR);
-		case 'U': return(pU);
-		case 'V': return(pV);
-		default: return(NULL);
-		}
-	};
-
-	auto AddCube = [&](CMesh* pMesh, float x, float y, float z, XMFLOAT4 color)
-	{
-		CGameObject* pObject = new CGameObject();
-		pObject->SetMesh(pMesh);
-		pObject->m_nMaterials = 1;
-		pObject->m_ppMaterials = new CMaterial * [1];
-		pObject->m_ppMaterials[0] = new CMaterial();
-		pObject->m_ppMaterials[0]->SetPseudoLightingShader();
-		pObject->SetColor(color);
-		pObject->SetPosition(x, y, z);
-		vObjects.push_back(pObject);
-	};
-
-	auto AddLabel = [&](const char* pstrText, float fCenterX, float fCenterY, float fStep, CMesh* pMesh, XMFLOAT4 color)
-	{
-		int nLetters = (int)strlen(pstrText);
-		int nVisible = 0;
-		for (int i = 0; i < nLetters; i++) nVisible += (pstrText[i] == ' ') ? 1 : 5;
-		float fGap = fStep * 1.2f;
-		float fTotalWidth = 0.0f;
-		for (int i = 0; i < nLetters; i++) fTotalWidth += (pstrText[i] == ' ') ? (fStep * 4.0f) : ((5.0f * fStep) + fGap);
-		float fLeft = fCenterX - (fTotalWidth * 0.5f);
-		float fTop = fCenterY + (3.0f * fStep);
-
-		for (int i = 0; i < nLetters; i++)
-		{
-			if (pstrText[i] == ' ')
-			{
-				fLeft += fStep * 4.0f;
-				continue;
-			}
-			const char** ppGlyph = GetGlyph(pstrText[i]);
-			if (ppGlyph)
-			{
-				for (int y = 0; y < 7; y++)
-				{
-					for (int x = 0; x < 5; x++)
-					{
-						if (ppGlyph[y][x] == '1') AddCube(pMesh, fLeft + (x * fStep), fTop - (y * fStep), 0.0f, color);
-					}
-				}
-			}
-			fLeft += (5.0f * fStep) + fGap;
-		}
-	};
-
-	auto AddButton = [&](float fCenterX, float fCenterY, float fWidth, float fHeight, const char* pstrText)
-	{
-		XMFLOAT4 xmf4Color(0.9f, 0.9f, 0.95f, 1.0f);
-		float fLeft = fCenterX - (fWidth * 0.5f);
-		float fRight = fCenterX + (fWidth * 0.5f);
-		float fTop = fCenterY + (fHeight * 0.5f);
-		float fBottom = fCenterY - (fHeight * 0.5f);
-		for (float x = fLeft; x <= fRight; x += 8.0f)
-		{
-			AddCube(pButtonMesh, x, fTop, 0.0f, xmf4Color);
-			AddCube(pButtonMesh, x, fBottom, 0.0f, xmf4Color);
-		}
-		for (float y = fBottom; y <= fTop; y += 8.0f)
-		{
-			AddCube(pButtonMesh, fLeft, y, 0.0f, xmf4Color);
-			AddCube(pButtonMesh, fRight, y, 0.0f, xmf4Color);
-		}
-		AddLabel(pstrText, fCenterX, fCenterY, 4.2f, pButtonMesh, xmf4Color);
-	};
-
-	AddLabel("GAME OVER", 0.0f, 95.0f, 9.0f, pTextMesh, XMFLOAT4(4.0f, 0.15f, 0.1f, 1.0f));
-	AddButton(0.0f, -75.0f, 185.0f, 65.0f, "MENU");
+	AddCubeLabel(vObjects, pTextMesh, "GAME OVER", 0.0f, 95.0f, 0.0f, 9.0f, 10.8f, XMFLOAT4(4.0f, 0.15f, 0.1f, 1.0f));
+	AddResultButton(vObjects, pButtonMesh, "MENU", 0.0f, -75.0f, 185.0f, 65.0f);
 
 	m_nGameOverObjects = (int)vObjects.size();
 	m_ppGameOverObjects = new CGameObject * [m_nGameOverObjects];
@@ -425,105 +349,8 @@ void CScene::BuildGameClearObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsComma
 	CMesh* pTextMesh = new CCubeMesh(pd3dDevice, pd3dCommandList, 5.0f, 5.0f, 5.0f);
 	CMesh* pButtonMesh = new CCubeMesh(pd3dDevice, pd3dCommandList, 5.0f, 5.0f, 5.0f);
 
-	const char* pA[7] = { "01110", "10001", "10001", "11111", "10001", "10001", "10001" };
-	const char* pC[7] = { "01111", "10000", "10000", "10000", "10000", "10000", "01111" };
-	const char* pL[7] = { "10000", "10000", "10000", "10000", "10000", "10000", "11111" };
-	const char* pE[7] = { "11111", "10000", "10000", "11110", "10000", "10000", "11111" };
-	const char* pG[7] = { "01111", "10000", "10000", "10011", "10001", "10001", "01111" };
-	const char* pM[7] = { "10001", "11011", "10101", "10101", "10001", "10001", "10001" };
-	const char* pN[7] = { "10001", "11001", "10101", "10011", "10001", "10001", "10001" };
-	const char* pO[7] = { "01110", "10001", "10001", "10001", "10001", "10001", "01110" };
-	const char* pR[7] = { "11110", "10001", "10001", "11110", "10100", "10010", "10001" };
-	const char* pU[7] = { "10001", "10001", "10001", "10001", "10001", "10001", "01110" };
-	const char* pV[7] = { "10001", "10001", "10001", "10001", "01010", "01010", "00100" };
-
-	auto GetGlyph = [&](char ch) -> const char**
-	{
-		switch (ch)
-		{
-		case 'A': return(pA);
-		case 'C': return(pC);
-		case 'L': return(pL);
-		case 'E': return(pE);
-		case 'G': return(pG);
-		case 'M': return(pM);
-		case 'N': return(pN);
-		case 'O': return(pO);
-		case 'R': return(pR);
-		case 'U': return(pU);
-		case 'V': return(pV);
-		default: return(NULL);
-		}
-	};
-
-	auto AddCube = [&](CMesh* pMesh, float x, float y, float z, XMFLOAT4 color)
-	{
-		CGameObject* pObject = new CGameObject();
-		pObject->SetMesh(pMesh);
-		pObject->m_nMaterials = 1;
-		pObject->m_ppMaterials = new CMaterial * [1];
-		pObject->m_ppMaterials[0] = new CMaterial();
-		pObject->m_ppMaterials[0]->SetPseudoLightingShader();
-		pObject->SetColor(color);
-		pObject->SetPosition(x, y, z);
-		vObjects.push_back(pObject);
-	};
-
-	auto AddLabel = [&](const char* pstrText, float fCenterX, float fCenterY, float fStep, CMesh* pMesh, XMFLOAT4 color)
-	{
-		int nLetters = (int)strlen(pstrText);
-		int nVisible = 0;
-		for (int i = 0; i < nLetters; i++) nVisible += (pstrText[i] == ' ') ? 1 : 5;
-		float fGap = fStep * 1.2f;
-		float fTotalWidth = 0.0f;
-		for (int i = 0; i < nLetters; i++) fTotalWidth += (pstrText[i] == ' ') ? (fStep * 4.0f) : ((5.0f * fStep) + fGap);
-		float fLeft = fCenterX - (fTotalWidth * 0.5f);
-		float fTop = fCenterY + (3.0f * fStep);
-
-		for (int i = 0; i < nLetters; i++)
-		{
-			if (pstrText[i] == ' ')
-			{
-				fLeft += fStep * 4.0f;
-				continue;
-			}
-			const char** ppGlyph = GetGlyph(pstrText[i]);
-			if (ppGlyph)
-			{
-				for (int y = 0; y < 7; y++)
-				{
-					for (int x = 0; x < 5; x++)
-					{
-						if (ppGlyph[y][x] == '1') AddCube(pMesh, fLeft + (x * fStep), fTop - (y * fStep), 0.0f, color);
-					}
-				}
-			}
-			fLeft += (5.0f * fStep) + fGap;
-		}
-	};
-
-	auto AddButton = [&](float fCenterX, float fCenterY, float fWidth, float fHeight, const char* pstrText)
-	{
-		XMFLOAT4 xmf4Color(0.9f, 0.9f, 0.95f, 1.0f);
-		float fLeft = fCenterX - (fWidth * 0.5f);
-		float fRight = fCenterX + (fWidth * 0.5f);
-		float fTop = fCenterY + (fHeight * 0.5f);
-		float fBottom = fCenterY - (fHeight * 0.5f);
-		for (float x = fLeft; x <= fRight; x += 8.0f)
-		{
-			AddCube(pButtonMesh, x, fTop, 0.0f, xmf4Color);
-			AddCube(pButtonMesh, x, fBottom, 0.0f, xmf4Color);
-		}
-		for (float y = fBottom; y <= fTop; y += 8.0f)
-		{
-			AddCube(pButtonMesh, fLeft, y, 0.0f, xmf4Color);
-			AddCube(pButtonMesh, fRight, y, 0.0f, xmf4Color);
-		}
-		AddLabel(pstrText, fCenterX, fCenterY, 4.2f, pButtonMesh, xmf4Color);
-	};
-
-	AddLabel("GAME CLEAR", 0.0f, 95.0f, 9.0f, pTextMesh, XMFLOAT4(0.25f, 0.55f, 4.0f, 1.0f));
-	AddButton(0.0f, -75.0f, 185.0f, 65.0f, "MENU");
+	AddCubeLabel(vObjects, pTextMesh, "GAME CLEAR", 0.0f, 95.0f, 0.0f, 9.0f, 10.8f, XMFLOAT4(0.25f, 0.55f, 4.0f, 1.0f));
+	AddResultButton(vObjects, pButtonMesh, "MENU", 0.0f, -75.0f, 185.0f, 65.0f);
 
 	m_nGameClearObjects = (int)vObjects.size();
 	m_ppGameClearObjects = new CGameObject * [m_nGameClearObjects];
