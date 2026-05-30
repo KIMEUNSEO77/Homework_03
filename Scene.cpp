@@ -568,6 +568,8 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	}
 	m_pBomb = CreateColorCube(pd3dDevice, pd3dCommandList, XMFLOAT4(4.0f, 0.15f, 0.1f, 1.0f), 8.0f);
 	for (int i = 0; i < 10; i++) m_ppCoinObjects[i] = CreateColorCube(pd3dDevice, pd3dCommandList, XMFLOAT4(4.0f, 3.0f, 0.1f, 1.0f), 1.4f);
+	for (int i = 0; i < 10; i++) m_ppUltimateGaugeObjects[i] = CreateColorCube(pd3dDevice, pd3dCommandList, XMFLOAT4(4.0f, 0.1f, 0.1f, 1.0f), 2.0f);
+	for (int i = 0; i < 10; i++) m_ppUltimateBulletObjects[i] = CreateColorCube(pd3dDevice, pd3dCommandList, XMFLOAT4(4.0f, 0.1f, 0.1f, 1.0f), 6.0f);
 	for (int i = 0; i < 16; i++)
 	{
 		m_ppExplosionObjects[i] = CreateColorCube(pd3dDevice, pd3dCommandList, XMFLOAT4(4.0f, 0.8f, 0.1f, 1.0f), 4.0f);
@@ -627,6 +629,67 @@ void CScene::UpdateCoinObjects(CCamera* pCamera)
 		xmf3Position = Vector3::Add(xmf3Position, xmf3Up, 6.0f);
 		if ((i >= m_nCoins) && !m_bGameOver && !m_bGameClear) xmf3Position.y -= 10000.0f;
 		m_ppCoinObjects[i]->SetPosition(xmf3Position);
+	}
+}
+void CScene::UpdateUltimateGaugeObjects(CCamera* pCamera)
+{
+	if (!pCamera) return;
+
+	XMFLOAT3 xmf3Camera = pCamera->GetPosition();
+	XMFLOAT3 xmf3Look = pCamera->GetLookVector();
+	XMFLOAT3 xmf3Right = pCamera->GetRightVector();
+	XMFLOAT3 xmf3Up = pCamera->GetUpVector();
+
+	for (int i = 0; i < 10; i++)
+	{
+		if (!m_ppUltimateGaugeObjects[i]) continue;
+		XMFLOAT3 xmf3Position = Vector3::Add(xmf3Camera, xmf3Look, 36.0f);
+		xmf3Position = Vector3::Add(xmf3Position, xmf3Right, -11.25f + (i * 2.5f));
+		xmf3Position = Vector3::Add(xmf3Position, xmf3Up, 10.0f);
+		if (i >= m_nUltimateGauge) xmf3Position.y -= 10000.0f;
+		m_ppUltimateGaugeObjects[i]->SetPosition(xmf3Position);
+	}
+}
+
+void CScene::StartUltimateRain()
+{
+	if (!m_pPlayer || m_bUltimateFiring || m_bGameOver || m_bGameClear) return;
+
+	m_bUltimateFiring = true;
+	m_fUltimateFireTimer = 0.0f;
+	m_nUltimateNextBullet = 0;
+	for (int i = 0; i < 10; i++)
+	{
+		m_bUltimateBulletActive[i] = false;
+		if (m_ppUltimateBulletObjects[i]) m_ppUltimateBulletObjects[i]->SetPosition(0.0f, -10000.0f, 0.0f);
+	}
+}
+
+void CScene::HitHouseByBullet(XMFLOAT3 xmf3BulletPosition, bool* pbBulletActive, CGameObject* pBulletObject)
+{
+	if (!pbBulletActive || !(*pbBulletActive) || !pBulletObject) return;
+
+	for (int i = 0; i < 16; i++)
+	{
+		if (!m_bHouseActive[i]) continue;
+		CGameObject* pHouse = m_ppGameObjects[3 + i];
+		XMFLOAT3 xmf3House = pHouse->GetPosition();
+		if ((DistanceXZ(xmf3BulletPosition, xmf3House) < 55.0f) && (xmf3BulletPosition.y <= (xmf3House.y + 95.0f)))
+		{
+			MakeExplosion(xmf3House);
+			pHouse->SetPosition(0.0f, -10000.0f, 0.0f);
+			m_bHouseActive[i] = false;
+			pBulletObject->SetPosition(0.0f, -10000.0f, 0.0f);
+			*pbBulletActive = false;
+			if (m_nCoins < 10) m_nCoins++;
+			if (m_nCoins >= 10)
+			{
+				m_bGameClear = true;
+				m_GameState.m_nScene = GAME_SCENE_GAMECLEAR;
+				ResetMenuCamera();
+			}
+			break;
+		}
 	}
 }
 void CScene::ReleaseObjects()
@@ -719,6 +782,8 @@ void CScene::ReleaseUploadBuffers()
 	for (int i = 0; i < m_nGameClearObjects; i++) if (m_ppGameClearObjects[i]) m_ppGameClearObjects[i]->ReleaseUploadBuffers();
 	if (m_pBomb) m_pBomb->ReleaseUploadBuffers();
 	for (int i = 0; i < 10; i++) if (m_ppCoinObjects[i]) m_ppCoinObjects[i]->ReleaseUploadBuffers();
+	for (int i = 0; i < 10; i++) if (m_ppUltimateGaugeObjects[i]) m_ppUltimateGaugeObjects[i]->ReleaseUploadBuffers();
+	for (int i = 0; i < 10; i++) if (m_ppUltimateBulletObjects[i]) m_ppUltimateBulletObjects[i]->ReleaseUploadBuffers();
 	for (int i = 0; i < 16; i++) if (m_ppExplosionObjects[i]) m_ppExplosionObjects[i]->ReleaseUploadBuffers();
 }
 
@@ -762,6 +827,17 @@ void CScene::ResetLevelState()
 			m_ppCoinObjects[i]->SetPosition(0.0f, -10000.0f, 0.0f);
 		}
 	}
+	for (int i = 0; i < 10; i++)
+	{
+		if (m_ppUltimateGaugeObjects[i]) m_ppUltimateGaugeObjects[i]->SetPosition(0.0f, -10000.0f, 0.0f);
+		if (m_ppUltimateBulletObjects[i]) m_ppUltimateBulletObjects[i]->SetPosition(0.0f, -10000.0f, 0.0f);
+		m_bUltimateBulletActive[i] = false;
+	}
+	m_fUltimateGaugeTimer = 0.0f;
+	m_fUltimateFireTimer = 0.0f;
+	m_nUltimateGauge = 0;
+	m_nUltimateNextBullet = 0;
+	m_bUltimateFiring = false;
 	for (int i = 0; i < 16; i++)
 	{
 		m_pfExplosionTime[i] = 0.0f;
@@ -1004,6 +1080,62 @@ void CScene::AnimateObjects(float fTimeElapsed)
 		}
 	}
 
+	if (!m_bGameOver && !m_bGameClear)
+	{
+		if (!m_bUltimateFiring)
+		{
+			m_fUltimateGaugeTimer += fTimeElapsed;
+			if (m_fUltimateGaugeTimer >= 1.0f)
+			{
+				m_fUltimateGaugeTimer -= 1.0f;
+				if (m_nUltimateGauge < 10) m_nUltimateGauge++;
+				if (m_nUltimateGauge >= 10) StartUltimateRain();
+			}
+		}
+
+		if (m_bUltimateFiring && m_pPlayer)
+		{
+			m_fUltimateFireTimer += fTimeElapsed;
+			while ((m_nUltimateNextBullet < 10) && (m_fUltimateFireTimer >= (m_nUltimateNextBullet * 0.08f)))
+			{
+				int nBullet = m_nUltimateNextBullet++;
+				XMFLOAT3 xmf3Position = m_pPlayer->GetPosition();
+				xmf3Position.x += ((nBullet % 5) - 2) * 22.0f;
+				xmf3Position.z += ((nBullet / 5) == 0) ? -16.0f : 16.0f;
+				xmf3Position.y -= 20.0f;
+				m_ppUltimateBulletObjects[nBullet]->SetPosition(xmf3Position);
+				m_bUltimateBulletActive[nBullet] = true;
+			}
+
+			bool bAnyBulletAlive = false;
+			for (int i = 0; i < 10; i++)
+			{
+				if (!m_bUltimateBulletActive[i] || !m_ppUltimateBulletObjects[i]) continue;
+				bAnyBulletAlive = true;
+				XMFLOAT3 xmf3Bullet = m_ppUltimateBulletObjects[i]->GetPosition();
+				xmf3Bullet.y -= 430.0f * fTimeElapsed;
+				m_ppUltimateBulletObjects[i]->SetPosition(xmf3Bullet);
+
+				float fGround = (m_pTerrain) ? m_pTerrain->GetHeight(xmf3Bullet.x, xmf3Bullet.z) : 0.0f;
+				if (xmf3Bullet.y <= (fGround + 2.0f))
+				{
+					m_ppUltimateBulletObjects[i]->SetPosition(0.0f, -10000.0f, 0.0f);
+					m_bUltimateBulletActive[i] = false;
+					continue;
+				}
+				HitHouseByBullet(xmf3Bullet, &m_bUltimateBulletActive[i], m_ppUltimateBulletObjects[i]);
+			}
+
+			if ((m_nUltimateNextBullet >= 10) && !bAnyBulletAlive)
+			{
+				m_bUltimateFiring = false;
+				m_fUltimateGaugeTimer = 0.0f;
+				m_fUltimateFireTimer = 0.0f;
+				m_nUltimateGauge = 0;
+				m_nUltimateNextBullet = 0;
+			}
+		}
+	}
 	if (m_bBombActive && m_pBomb)
 	{
 		XMFLOAT3 xmf3Bomb = m_pBomb->GetPosition();
@@ -1066,6 +1198,8 @@ void CScene::AnimateObjects(float fTimeElapsed)
 
 	for (int i = 0; i < m_nGameObjects; i++) m_ppGameObjects[i]->UpdateTransform(NULL);
 	if (m_pBomb) m_pBomb->UpdateTransform(NULL);
+	for (int i = 0; i < 10; i++) if (m_ppUltimateBulletObjects[i]) m_ppUltimateBulletObjects[i]->UpdateTransform(NULL);
+	for (int i = 0; i < 10; i++) if (m_ppUltimateGaugeObjects[i]) m_ppUltimateGaugeObjects[i]->UpdateTransform(NULL);
 	for (int i = 0; i < 10; i++) if (m_ppCoinObjects[i]) m_ppCoinObjects[i]->UpdateTransform(NULL);
 	for (int i = 0; i < 16; i++) if (m_ppExplosionObjects[i]) m_ppExplosionObjects[i]->UpdateTransform(NULL);
 }
@@ -1110,7 +1244,10 @@ void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera
 	}
 
 	if (m_bBombActive && m_pBomb) m_pBomb->Render(pd3dCommandList, pCamera);
+	for (int i = 0; i < 10; i++) if (m_bUltimateBulletActive[i] && m_ppUltimateBulletObjects[i]) m_ppUltimateBulletObjects[i]->Render(pd3dCommandList, pCamera);
 	for (int i = 0; i < 16; i++) if (m_pfExplosionTime[i] > 0.0f) m_ppExplosionObjects[i]->Render(pd3dCommandList, pCamera);
+	UpdateUltimateGaugeObjects(pCamera);
+	for (int i = 0; i < 10; i++) if (m_ppUltimateGaugeObjects[i]) m_ppUltimateGaugeObjects[i]->Render(pd3dCommandList, pCamera);
 	UpdateCoinObjects(pCamera);
 	for (int i = 0; i < 10; i++) if (m_ppCoinObjects[i]) m_ppCoinObjects[i]->Render(pd3dCommandList, pCamera);
 }

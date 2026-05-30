@@ -52,6 +52,9 @@ public:
 	void RespawnHouse(int nIndex);
 	void MakeExplosion(XMFLOAT3 xmf3Position);
 	void UpdateCoinObjects(CCamera* pCamera);
+	void UpdateUltimateGaugeObjects(CCamera* pCamera);
+	void StartUltimateRain();
+	void HitHouseByBullet(XMFLOAT3 xmf3BulletPosition, bool* pbBulletActive, CGameObject* pBulletObject);
 	CGameObject* CreateColorCube(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT4 xmf4Color, float fSize);
 	void BuildTitleObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	void BuildMenuObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
@@ -99,6 +102,14 @@ public:
 
 	CGameObject*					m_pBomb = NULL;
 	CGameObject*					m_ppCoinObjects[10] = { NULL };
+	CGameObject*					m_ppUltimateGaugeObjects[10] = { NULL };
+	CGameObject*					m_ppUltimateBulletObjects[10] = { NULL };
+	bool							 m_bUltimateBulletActive[10] = { false };
+	float						 m_fUltimateGaugeTimer = 0.0f;
+	float						 m_fUltimateFireTimer = 0.0f;
+	int							 m_nUltimateGauge = 0;
+	int							 m_nUltimateNextBullet = 0;
+	bool						 m_bUltimateFiring = false;
 	CGameObject*					m_ppExplosionObjects[16] = { NULL };
 	XMFLOAT3						m_pxmf3ExplosionVelocity[16];
 	float								m_pfExplosionTime[16] = { 0.0f };
