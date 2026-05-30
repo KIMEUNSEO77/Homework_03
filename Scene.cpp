@@ -5,12 +5,12 @@
 
 namespace
 {
-	// 지형 높이로 y값 계산
+	// 지형 객체가 있으면 x,z 위치의 높이에 보정값을 더해 y 좌표를 계산
 	float TerrainY(CHeightMapTerrain* pTerrain, float x, float z, float fOffset)
 	{
 		return((pTerrain) ? (pTerrain->GetHeight(x, z) + fOffset) : fOffset);
 	}
-	// xz 평면에서의 두 점 사이의 거리 계산
+	// xz 거리 계산
 	float DistanceXZ(XMFLOAT3 a, XMFLOAT3 b)
 	{
 		float x = a.x - b.x;
@@ -23,7 +23,7 @@ namespace
 	{
 		return(fMin + ((fMax - fMin) * (rand() / float(RAND_MAX))));
 	}
-	// 타겟을 바라보도록 회전
+	// 목표 위치를 바라보도록 y축 회전값 계산
 	void TurnObjectToTarget(CGameObject* pObject, XMFLOAT3 xmf3Target)
 	{
 		if (!pObject) return;
@@ -51,7 +51,7 @@ namespace
 		pObject->Rotate(0.0f, fYaw, 0.0f);
 	}
 
-	// 건물 생성
+	// 외부 Binary Mesh 파일을 읽어 지형 높이에 맞는 건물 오브젝트를 생성
 	CGameObject* CreateHouseObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
 		const char* pstrMeshFile, float x, float z, float fScale, float fYaw, CHeightMapTerrain* pTerrain)
 	{
@@ -71,6 +71,7 @@ namespace
 }
 
 
+// 글자나 버튼 구성하는 큐브 오브젝트 생성해 벡터에 추가
 static CGameObject* CreateTextCube(vector<CGameObject*>& vObjects, CMesh* pMesh, float x, float y, float z, XMFLOAT4 xmf4Color)
 {
 	CGameObject* pObject = new CGameObject();
@@ -87,6 +88,7 @@ static CGameObject* CreateTextCube(vector<CGameObject*>& vObjects, CMesh* pMesh,
 	return(pObject);
 }
 
+// 글자 패턴 가로 칸 수 계산
 static int GetPatternWidth(const char** ppPattern)
 {
 	int nWidth = 0;
@@ -94,6 +96,7 @@ static int GetPatternWidth(const char** ppPattern)
 	return(nWidth);
 }
 
+// 글자 패턴에서 값이 1인 위치마다 큐브를 배치
 static int AddPatternGlyph(vector<CGameObject*>& vObjects, CMesh* pMesh, const char** ppPattern, float fLeft, float fTop, float fZ, float fStep, XMFLOAT4 xmf4Color)
 {
 	int nMaxWidth = 0;
@@ -131,6 +134,7 @@ static const char* g_p1[7] = { "00100", "01100", "00100", "00100", "00100", "001
 static const char* g_p2[7] = { "11110", "00001", "00001", "11110", "10000", "10000", "11111" };
 static const char* g_p3[7] = { "11110", "00001", "00001", "01110", "00001", "00001", "11110" };
 
+// 문자 하나에 대응하는 7줄짜리 큐브 글자 패턴을 반환
 static const char** GetEnglishGlyph(char ch)
 {
 	switch (ch)
@@ -158,6 +162,7 @@ static const char** GetEnglishGlyph(char ch)
 	}
 }
 
+// 문자열 전체의 폭을 계산한 후 여러 글자 패턴을 이어 붙여 큐브 글자를 만듦
 static void AddCubeLabel(vector<CGameObject*>& vObjects, CMesh* pMesh, const char* pstrText, float fCenterX, float fCenterY, float fZ, float fStep, float fGap, XMFLOAT4 xmf4Color)
 {
 	float fTotalWidth = 0.0f;
@@ -188,6 +193,7 @@ static void AddCubeLabel(vector<CGameObject*>& vObjects, CMesh* pMesh, const cha
 	}
 }
 
+// 버튼의 위, 아래, 왼쪽, 오른쪽 테두리를 큐브로 배치
 static void AddButtonFrame(vector<CGameObject*>& vObjects, CMesh* pMesh, float fCenterX, float fCenterY, float fZ, float fWidth, float fHeight, float fStep, XMFLOAT4 xmf4Color)
 {
 	float fLeft = fCenterX - (fWidth * 0.5f);
@@ -242,6 +248,7 @@ CGameObject* CScene::CreateColorCube(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
 
 	return(pObject);
 }
+
 void CScene::ReleaseSceneObjects(CGameObject** ppObjects, int nObjects)
 {
 	if (!ppObjects) return;
@@ -255,7 +262,7 @@ void CScene::RenderSceneObjects(ID3D12GraphicsCommandList* pd3dCommandList, CCam
 	for (int i = 0; i < nObjects; i++) if (ppObjects[i]) ppObjects[i]->Render(pd3dCommandList, pCamera);
 }
 
-// 시작 화면 글자 생성
+// 시작 화면
 void CScene::BuildTitleObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	vector<CGameObject*> vObjects;
@@ -306,7 +313,7 @@ void CScene::BuildTitleObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 	for (int i = 0; i < m_nTitleObjects; i++) m_pxmf3TitleObjectVelocity[i] = XMFLOAT3(0.0f, 0.0f, 0.0f);
 }
 
-// 메뉴 화면 글자 생성
+// 메뉴 화면
 void CScene::BuildMenuObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	vector<CGameObject*> vObjects;
@@ -327,7 +334,7 @@ void CScene::BuildMenuObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	for (int i = 0; i < m_nMenuObjects; i++) m_ppMenuObjects[i] = vObjects[i];
 }
 
-// 게임 오버 글자 생성
+// 게임 오버 화면
 void CScene::BuildGameOverObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	vector<CGameObject*> vObjects;
@@ -342,7 +349,7 @@ void CScene::BuildGameOverObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsComman
 	for (int i = 0; i < m_nGameOverObjects; i++) m_ppGameOverObjects[i] = vObjects[i];
 }
 
-// 게임 클리어 글자 생성
+// 게임 클리어 화면
 void CScene::BuildGameClearObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	vector<CGameObject*> vObjects;
@@ -440,7 +447,7 @@ void CScene::FireBomb()
 	m_bBombActive = true;
 }
 
-// 집 생성
+// 건물 배치
 void CScene::RespawnHouse(int nIndex)
 {
 	if ((nIndex < 0) || (nIndex >= 16) || !m_pTerrain) return;
@@ -468,7 +475,7 @@ void CScene::MakeExplosion(XMFLOAT3 xmf3Position)
 	}
 }
 
-// 코인 업데이트
+// 코인 
 void CScene::UpdateCoinObjects(CCamera* pCamera)
 {
 	if (!pCamera) return;
@@ -488,7 +495,7 @@ void CScene::UpdateCoinObjects(CCamera* pCamera)
 	}
 }
 
-// 궁극기 게이지 업데이트
+// 궁극기 게이지
 void CScene::UpdateUltimateGaugeObjects(CCamera* pCamera)
 {
 	if (!pCamera) return;
@@ -525,7 +532,7 @@ void CScene::StartUltimateRain()
 	}
 }
 
-// 총알, 집 충돌
+// 건물, 폭탄 충돌 검사
 void CScene::HitHouseByBullet(XMFLOAT3 xmf3BulletPosition, bool* pbBulletActive, CGameObject* pBulletObject)
 {
 	if (!pbBulletActive || !(*pbBulletActive) || !pBulletObject) return;
@@ -555,6 +562,7 @@ void CScene::HitHouseByBullet(XMFLOAT3 xmf3BulletPosition, bool* pbBulletActive,
 		}
 	}
 }
+
 void CScene::ReleaseObjects()
 {
 	if (m_pd3dGraphicsRootSignature) m_pd3dGraphicsRootSignature->Release();
@@ -671,7 +679,7 @@ void CScene::ResetMenuCamera()
 	}
 }
 
-// 레벨 상태 초기화
+// 게임 상태 초기화
 void CScene::ResetLevelState()
 {
 	m_nCoins = 0;
@@ -712,11 +720,12 @@ void CScene::ResetLevelState()
 	}
 }
 
-// 타이틀 이름 클릭 체크
+// 마우스 클릭 좌표가 시작 화면의 이름 영역 안에 있는지 검사
 bool CScene::IsTitleNameClicked(HWND hWnd, LPARAM lParam)
 {
 	RECT rcClient;
 	::GetClientRect(hWnd, &rcClient);
+
 	int nWidth = rcClient.right - rcClient.left;
 	int nHeight = rcClient.bottom - rcClient.top;
 	if ((nWidth <= 0) || (nHeight <= 0)) return(false);
@@ -731,7 +740,7 @@ bool CScene::IsTitleNameClicked(HWND hWnd, LPARAM lParam)
 	return((x >= nLeft) && (x <= nRight) && (y >= nTop) && (y <= nBottom));
 }
 
-// Start 클릭 체크
+// 마우스 클릭 좌표가 Start 버튼 영역 안에 있는지 검사
 bool CScene::IsMenuStartClicked(HWND hWnd, LPARAM lParam)
 {
 	RECT rcClient;
@@ -750,7 +759,7 @@ bool CScene::IsMenuStartClicked(HWND hWnd, LPARAM lParam)
 	return((x >= nLeft) && (x <= nRight) && (y >= nTop) && (y <= nBottom));
 }
 
-// 메뉴 클릭 체크
+// 마우스 클릭 좌표가 결과 화면의 Menu 버튼 영역 안에 있는지 검사
 bool CScene::IsGameOverMenuClicked(HWND hWnd, LPARAM lParam)
 {
 	RECT rcClient;
@@ -797,6 +806,8 @@ void CScene::StartTitleNameExplosion()
 			RandomRange(-90.0f, 90.0f));
 	}
 }
+
+// 현재 게임 상태에 따라 마우스 클릭으로 이름, START, MENU 버튼 입력을 처리
 bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
 	if (nMessageID == WM_LBUTTONDOWN)
@@ -850,6 +861,7 @@ bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam,
 	return(false);
 }
 
+// Level1에서 ESC키 입력 시 메뉴 화면으로 전환
 bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
 	if ((nMessageID == WM_KEYUP) && (wParam == VK_ESCAPE) && (m_GameState.m_nScene == GAME_SCENE_LEVEL1))
@@ -864,6 +876,7 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 	return(false);
 }
 
+// Level1에서 Space 키 입력 시 폭탄 발사 처리
 bool CScene::ProcessInput(UCHAR* pKeysBuffer)
 {
 	if (m_GameState.m_nScene != GAME_SCENE_LEVEL1) return(true);
