@@ -5,14 +5,17 @@
 
 namespace
 {
+	// 지형 높이로 y값 계산
 	float TerrainY(CHeightMapTerrain* pTerrain, float x, float z, float fOffset)
 	{
 		return((pTerrain) ? (pTerrain->GetHeight(x, z) + fOffset) : fOffset);
 	}
+	// xz 평면에서의 두 점 사이의 거리 계산
 	float DistanceXZ(XMFLOAT3 a, XMFLOAT3 b)
 	{
 		float x = a.x - b.x;
 		float z = a.z - b.z;
+
 		return(sqrtf((x * x) + (z * z)));
 	}
 
@@ -20,15 +23,19 @@ namespace
 	{
 		return(fMin + ((fMax - fMin) * (rand() / float(RAND_MAX))));
 	}
+	// 타겟을 바라보도록 회전
 	void TurnObjectToTarget(CGameObject* pObject, XMFLOAT3 xmf3Target)
 	{
 		if (!pObject) return;
 
 		XMFLOAT3 xmf3Position = pObject->GetPosition();
 		XMFLOAT3 xmf3Direction = Vector3::Subtract(xmf3Target, xmf3Position);
+
 		xmf3Direction.y = 0.0f;
+
 		float fLength = Vector3::Length(xmf3Direction);
 		if (fLength < 0.001f) return;
+
 		xmf3Direction = Vector3::ScalarProduct(xmf3Direction, 1.0f / fLength, false);
 
 		XMFLOAT3 xmf3Look = pObject->GetLook();
@@ -40,13 +47,16 @@ namespace
 		float fDot = max(-1.0f, min(1.0f, (xmf3Look.x * xmf3Direction.x) + (xmf3Look.z * xmf3Direction.z)));
 		float fCross = (xmf3Look.z * xmf3Direction.x) - (xmf3Look.x * xmf3Direction.z);
 		float fYaw = XMConvertToDegrees(atan2f(fCross, fDot));
+
 		pObject->Rotate(0.0f, fYaw, 0.0f);
 	}
 
+	// 건물 생성
 	CGameObject* CreateHouseObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
 		const char* pstrMeshFile, float x, float z, float fScale, float fYaw, CHeightMapTerrain* pTerrain)
 	{
 		CGameObject* pHouseObject = new CGameObject();
+
 		pHouseObject->SetMesh(new CBinaryMeshFromFile(pd3dDevice, pd3dCommandList, pstrMeshFile));
 		pHouseObject->m_nMaterials = 1;
 		pHouseObject->m_ppMaterials = new CMaterial * [1];
@@ -55,6 +65,7 @@ namespace
 		pHouseObject->SetScale(fScale, fScale, fScale);
 		pHouseObject->Rotate(0.0f, fYaw, 0.0f);
 		pHouseObject->SetPosition(x, TerrainY(pTerrain, x, z, 4.0f), z);
+
 		return(pHouseObject);
 	}
 }
@@ -70,6 +81,7 @@ CScene::~CScene()
 CGameObject* CScene::CreateColorCube(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT4 xmf4Color, float fSize)
 {
 	CGameObject* pObject = new CGameObject();
+
 	pObject->SetMesh(new CCubeMesh(pd3dDevice, pd3dCommandList, fSize, fSize, fSize));
 	pObject->m_nMaterials = 1;
 	pObject->m_ppMaterials = new CMaterial * [1];
@@ -77,6 +89,7 @@ CGameObject* CScene::CreateColorCube(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
 	pObject->m_ppMaterials[0]->SetPseudoLightingShader();
 	pObject->SetColor(xmf4Color);
 	pObject->SetPosition(0.0f, -10000.0f, 0.0f);
+
 	return(pObject);
 }
 void CScene::ReleaseSceneObjects(CGameObject** ppObjects, int nObjects)
@@ -92,6 +105,7 @@ void CScene::RenderSceneObjects(ID3D12GraphicsCommandList* pd3dCommandList, CCam
 	for (int i = 0; i < nObjects; i++) if (ppObjects[i]) ppObjects[i]->Render(pd3dCommandList, pCamera);
 }
 
+// 시작 화면 글자	 생성
 void CScene::BuildTitleObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	vector<CGameObject*> vObjects;
@@ -119,6 +133,7 @@ void CScene::BuildTitleObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 	auto AddBlock = [&](float x, float y, float z, XMFLOAT4 color)
 	{
 		CGameObject* pObject = new CGameObject();
+
 		pObject->SetMesh(pMesh);
 		pObject->m_nMaterials = 1;
 		pObject->m_ppMaterials = new CMaterial * [1];
@@ -132,6 +147,7 @@ void CScene::BuildTitleObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 	auto AddGlyph = [&](const char** ppRows, float fLeft, float fTop, XMFLOAT4 color) -> int
 	{
 		int nMaxWidth = 0;
+
 		for (int y = 0; y < 7; y++)
 		{
 			int nWidth = 0;
@@ -147,6 +163,7 @@ void CScene::BuildTitleObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 	};
 
 	float fX = -210.0f;
+
 	for (int i = 0; i < 10; i++)
 	{
 		int nWidth = AddGlyph(ppTitle[i], fX, 55.0f, XMFLOAT4(0.15f, 0.75f, 1.0f, 1.0f));
@@ -170,6 +187,8 @@ void CScene::BuildTitleObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 	m_pxmf3TitleObjectVelocity = new XMFLOAT3[m_nTitleObjects];
 	for (int i = 0; i < m_nTitleObjects; i++) m_pxmf3TitleObjectVelocity[i] = XMFLOAT3(0.0f, 0.0f, 0.0f);
 }
+
+// 메뉴 화면 글자 생성
 void CScene::BuildMenuObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	vector<CGameObject*> vObjects;
@@ -290,6 +309,8 @@ void CScene::BuildMenuObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	m_ppMenuObjects = new CGameObject * [m_nMenuObjects];
 	for (int i = 0; i < m_nMenuObjects; i++) m_ppMenuObjects[i] = vObjects[i];
 }
+
+// 게임 오버 글자 생성
 void CScene::BuildGameOverObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	vector<CGameObject*> vObjects;
@@ -396,6 +417,8 @@ void CScene::BuildGameOverObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsComman
 	m_ppGameOverObjects = new CGameObject * [m_nGameOverObjects];
 	for (int i = 0; i < m_nGameOverObjects; i++) m_ppGameOverObjects[i] = vObjects[i];
 }
+
+// 게임 클리어 글자 생성
 void CScene::BuildGameClearObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	vector<CGameObject*> vObjects;
@@ -506,6 +529,7 @@ void CScene::BuildGameClearObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsComma
 	m_ppGameClearObjects = new CGameObject * [m_nGameClearObjects];
 	for (int i = 0; i < m_nGameClearObjects; i++) m_ppGameClearObjects[i] = vObjects[i];
 }
+
 void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	m_pd3dGraphicsRootSignature = CreateGraphicsRootSignature(pd3dDevice);
@@ -578,6 +602,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
 
+// 폭탄 발사
 void CScene::FireBomb()
 {
 	if (!m_pPlayer || m_bBombActive || m_bGameOver || m_bGameClear) return;
@@ -588,6 +613,7 @@ void CScene::FireBomb()
 	m_bBombActive = true;
 }
 
+// 집 생성
 void CScene::RespawnHouse(int nIndex)
 {
 	if ((nIndex < 0) || (nIndex >= 16) || !m_pTerrain) return;
@@ -596,11 +622,13 @@ void CScene::RespawnHouse(int nIndex)
 	float x = RandomRange(fMargin, m_pTerrain->GetWidth() - fMargin);
 	float z = RandomRange(fMargin, m_pTerrain->GetLength() - fMargin);
 	float y = TerrainY(m_pTerrain, x, z, 4.0f);
+
 	CGameObject* pHouse = m_ppGameObjects[3 + nIndex];
 	pHouse->SetPosition(x, y, z);
 	m_bHouseActive[nIndex] = true;
 }
 
+// 폭발
 void CScene::MakeExplosion(XMFLOAT3 xmf3Position)
 {
 	for (int i = 0; i < 16; i++)
@@ -613,6 +641,7 @@ void CScene::MakeExplosion(XMFLOAT3 xmf3Position)
 	}
 }
 
+// 코인 업데이트
 void CScene::UpdateCoinObjects(CCamera* pCamera)
 {
 	if (!pCamera) return;
@@ -631,6 +660,8 @@ void CScene::UpdateCoinObjects(CCamera* pCamera)
 		m_ppCoinObjects[i]->SetPosition(xmf3Position);
 	}
 }
+
+// 궁극기 게이지 업데이트
 void CScene::UpdateUltimateGaugeObjects(CCamera* pCamera)
 {
 	if (!pCamera) return;
@@ -651,6 +682,7 @@ void CScene::UpdateUltimateGaugeObjects(CCamera* pCamera)
 	}
 }
 
+// 궁극기 발사
 void CScene::StartUltimateRain()
 {
 	if (!m_pPlayer || m_bUltimateFiring || m_bGameOver || m_bGameClear) return;
@@ -658,6 +690,7 @@ void CScene::StartUltimateRain()
 	m_bUltimateFiring = true;
 	m_fUltimateFireTimer = 0.0f;
 	m_nUltimateNextBullet = 0;
+
 	for (int i = 0; i < 10; i++)
 	{
 		m_bUltimateBulletActive[i] = false;
@@ -665,6 +698,7 @@ void CScene::StartUltimateRain()
 	}
 }
 
+// 총알, 집 충돌
 void CScene::HitHouseByBullet(XMFLOAT3 xmf3BulletPosition, bool* pbBulletActive, CGameObject* pBulletObject)
 {
 	if (!pbBulletActive || !(*pbBulletActive) || !pBulletObject) return;
@@ -674,6 +708,7 @@ void CScene::HitHouseByBullet(XMFLOAT3 xmf3BulletPosition, bool* pbBulletActive,
 		if (!m_bHouseActive[i]) continue;
 		CGameObject* pHouse = m_ppGameObjects[3 + i];
 		XMFLOAT3 xmf3House = pHouse->GetPosition();
+
 		if ((DistanceXZ(xmf3BulletPosition, xmf3House) < 55.0f) && (xmf3BulletPosition.y <= (xmf3House.y + 95.0f)))
 		{
 			MakeExplosion(xmf3House);
@@ -681,6 +716,7 @@ void CScene::HitHouseByBullet(XMFLOAT3 xmf3BulletPosition, bool* pbBulletActive,
 			m_bHouseActive[i] = false;
 			pBulletObject->SetPosition(0.0f, -10000.0f, 0.0f);
 			*pbBulletActive = false;
+
 			if (m_nCoins < 10) m_nCoins++;
 			if (m_nCoins >= 10)
 			{
@@ -808,6 +844,7 @@ void CScene::ResetMenuCamera()
 	}
 }
 
+// 레벨 상태 초기화
 void CScene::ResetLevelState()
 {
 	m_nCoins = 0;
@@ -833,11 +870,13 @@ void CScene::ResetLevelState()
 		if (m_ppUltimateBulletObjects[i]) m_ppUltimateBulletObjects[i]->SetPosition(0.0f, -10000.0f, 0.0f);
 		m_bUltimateBulletActive[i] = false;
 	}
+
 	m_fUltimateGaugeTimer = 0.0f;
 	m_fUltimateFireTimer = 0.0f;
 	m_nUltimateGauge = 0;
 	m_nUltimateNextBullet = 0;
 	m_bUltimateFiring = false;
+
 	for (int i = 0; i < 16; i++)
 	{
 		m_pfExplosionTime[i] = 0.0f;
@@ -845,6 +884,8 @@ void CScene::ResetLevelState()
 		if (m_ppExplosionObjects[i]) m_ppExplosionObjects[i]->SetPosition(0.0f, -10000.0f, 0.0f);
 	}
 }
+
+// 타이틀 이름 클릭 체크
 bool CScene::IsTitleNameClicked(HWND hWnd, LPARAM lParam)
 {
 	RECT rcClient;
@@ -863,6 +904,7 @@ bool CScene::IsTitleNameClicked(HWND hWnd, LPARAM lParam)
 	return((x >= nLeft) && (x <= nRight) && (y >= nTop) && (y <= nBottom));
 }
 
+// Start 클릭 체크
 bool CScene::IsMenuStartClicked(HWND hWnd, LPARAM lParam)
 {
 	RECT rcClient;
@@ -880,6 +922,8 @@ bool CScene::IsMenuStartClicked(HWND hWnd, LPARAM lParam)
 
 	return((x >= nLeft) && (x <= nRight) && (y >= nTop) && (y <= nBottom));
 }
+
+// 메뉴 클릭 체크
 bool CScene::IsGameOverMenuClicked(HWND hWnd, LPARAM lParam)
 {
 	RECT rcClient;
@@ -898,12 +942,14 @@ bool CScene::IsGameOverMenuClicked(HWND hWnd, LPARAM lParam)
 	return((x >= nLeft) && (x <= nRight) && (y >= nTop) && (y <= nBottom));
 }
 
+// 시작 화면 폭발
 void CScene::StartTitleNameExplosion()
 {
 	if (m_bTitleNameExploding || !m_pxmf3TitleObjectVelocity) return;
 
 	m_bTitleNameExploding = true;
 	m_fTitleExplosionTimer = 0.0f;
+
 	XMFLOAT3 xmf3Center(0.0f, -45.0f, 0.0f);
 
 	for (int i = 0; i < m_nTitleNameObjects; i++)
@@ -914,6 +960,7 @@ void CScene::StartTitleNameExplosion()
 		XMFLOAT3 xmf3Position = m_ppTitleObjects[nObject]->GetPosition();
 		XMFLOAT3 xmf3Direction = Vector3::Subtract(xmf3Position, xmf3Center);
 		float fLength = Vector3::Length(xmf3Direction);
+
 		if (fLength < 0.01f) xmf3Direction = XMFLOAT3(RandomRange(-1.0f, 1.0f), RandomRange(-0.2f, 1.0f), 0.0f);
 		else xmf3Direction = Vector3::ScalarProduct(xmf3Direction, 1.0f / fLength, false);
 
@@ -928,11 +975,13 @@ bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam,
 	if (nMessageID == WM_LBUTTONDOWN)
 	{
 		m_GameState.m_bMouseDown = true;
+
 		if (m_GameState.m_nScene == GAME_SCENE_TITLE)
 		{
 			if (IsTitleNameClicked(hWnd, lParam)) StartTitleNameExplosion();
 			return(true);
 		}
+
 		if ((m_GameState.m_nScene == GAME_SCENE_GAMEOVER) || (m_GameState.m_nScene == GAME_SCENE_GAMECLEAR))
 		{
 			if (IsGameOverMenuClicked(hWnd, lParam))
@@ -942,17 +991,22 @@ bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam,
 			}
 			return(true);
 		}
+
 		if (m_GameState.m_nScene == GAME_SCENE_MENU)
 		{
 			if (!IsMenuStartClicked(hWnd, lParam)) return(true);
 			ResetLevelState();
+
 			m_GameState.m_nScene = GAME_SCENE_LEVEL1;
+
 			if (m_pPlayer && m_pTerrain)
 			{
 				float fPlayerX = m_pTerrain->GetWidth() * 0.5f;
 				float fPlayerZ = m_pTerrain->GetLength() * 0.5f;
 				XMFLOAT3 xmf3PlayerPosition(fPlayerX, m_pTerrain->GetHeight(fPlayerX, fPlayerZ) + 70.0f, fPlayerZ);
+
 				m_pPlayer->SetPosition(xmf3PlayerPosition);
+
 				CCamera* pCamera = m_pPlayer->GetCamera();
 				if (pCamera)
 				{
@@ -968,18 +1022,21 @@ bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam,
 	if (nMessageID == WM_LBUTTONUP) m_GameState.m_bMouseDown = false;
 	return(false);
 }
+
 bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
 	if ((nMessageID == WM_KEYUP) && (wParam == VK_ESCAPE) && (m_GameState.m_nScene == GAME_SCENE_LEVEL1))
 	{
 		m_GameState.m_nScene = GAME_SCENE_MENU;
 		m_bFireKeyDown = false;
+
 		ResetMenuCamera();
 
 		return(true);
 	}
 	return(false);
 }
+
 bool CScene::ProcessInput(UCHAR* pKeysBuffer)
 {
 	if (m_GameState.m_nScene != GAME_SCENE_LEVEL1) return(true);
@@ -989,6 +1046,7 @@ bool CScene::ProcessInput(UCHAR* pKeysBuffer)
 	m_bFireKeyDown = bFireKeyDown;
 	return(false);
 }
+
 void CScene::AnimateObjects(float fTimeElapsed)
 {
 	if (m_GameState.m_nScene == GAME_SCENE_TITLE)
@@ -1066,6 +1124,7 @@ void CScene::AnimateObjects(float fTimeElapsed)
 		}
 
 		m_fHouseRespawnTimer += fTimeElapsed;
+
 		if (m_fHouseRespawnTimer >= 5.0f)
 		{
 			m_fHouseRespawnTimer = 0.0f;
@@ -1203,6 +1262,7 @@ void CScene::AnimateObjects(float fTimeElapsed)
 	for (int i = 0; i < 10; i++) if (m_ppCoinObjects[i]) m_ppCoinObjects[i]->UpdateTransform(NULL);
 	for (int i = 0; i < 16; i++) if (m_ppExplosionObjects[i]) m_ppExplosionObjects[i]->UpdateTransform(NULL);
 }
+
 void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {
 	pd3dCommandList->SetGraphicsRootSignature(m_pd3dGraphicsRootSignature);
