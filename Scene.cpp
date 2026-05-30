@@ -1049,10 +1049,12 @@ bool CScene::ProcessInput(UCHAR* pKeysBuffer)
 
 void CScene::AnimateObjects(float fTimeElapsed)
 {
+	// 시작 화면
 	if (m_GameState.m_nScene == GAME_SCENE_TITLE)
 	{
 		if (m_bTitleNameExploding)
 		{
+			// 이름 폭발 효과
 			m_fTitleExplosionTimer += fTimeElapsed;
 			for (int i = 0; i < m_nTitleNameObjects; i++)
 			{
@@ -1072,6 +1074,7 @@ void CScene::AnimateObjects(float fTimeElapsed)
 			}
 		}
 
+		// 시작 화면 큐브들은 계속 회전
 		for (int i = 0; i < m_nTitleObjects; i++)
 		{
 			if (!m_ppTitleObjects[i]) continue;
@@ -1080,6 +1083,7 @@ void CScene::AnimateObjects(float fTimeElapsed)
 		}
 		return;
 	}
+
 	if (m_GameState.m_nScene == GAME_SCENE_MENU)
 	{
 		for (int i = 0; i < m_nMenuObjects; i++) m_ppMenuObjects[i]->UpdateTransform(NULL);
@@ -1098,11 +1102,14 @@ void CScene::AnimateObjects(float fTimeElapsed)
 		return;
 	}
 
+	// Level1의 게임 오브젝트 갱신
 	for (int i = 0; i < m_nGameObjects; i++) m_ppGameObjects[i]->Animate(fTimeElapsed, NULL);
 
 	if (!m_bGameOver && !m_bGameClear && m_pPlayer)
 	{
 		XMFLOAT3 xmf3Player = m_pPlayer->GetPosition();
+
+		// 적 헬리콥터는 매 프레임 플레이어 위치를 향해 이동
 		for (int i = 0; i < 2; i++)
 		{
 			XMFLOAT3 xmf3Enemy = m_ppGameObjects[i]->GetPosition();
@@ -1125,10 +1132,11 @@ void CScene::AnimateObjects(float fTimeElapsed)
 
 		m_fHouseRespawnTimer += fTimeElapsed;
 
+		// 5초마다 파괴돼 비활성화된 건물 하나를 다시 지형 위에 배치
 		if (m_fHouseRespawnTimer >= 5.0f)
 		{
 			m_fHouseRespawnTimer = 0.0f;
-						for (int i = 4; i < 16; i++)
+			for (int i = 4; i < 16; i++)
 			{
 				if (!m_bHouseActive[i])
 				{
@@ -1139,6 +1147,7 @@ void CScene::AnimateObjects(float fTimeElapsed)
 		}
 	}
 
+	// 궁극기 게이지는 궁극기 발사중에는 충전을 멈춤
 	if (!m_bGameOver && !m_bGameClear)
 	{
 		if (!m_bUltimateFiring)
@@ -1152,30 +1161,39 @@ void CScene::AnimateObjects(float fTimeElapsed)
 			}
 		}
 
+		// 궁극기 발사 
 		if (m_bUltimateFiring && m_pPlayer)
 		{
 			m_fUltimateFireTimer += fTimeElapsed;
+
 			while ((m_nUltimateNextBullet < 10) && (m_fUltimateFireTimer >= (m_nUltimateNextBullet * 0.08f)))
 			{
 				int nBullet = m_nUltimateNextBullet++;
 				XMFLOAT3 xmf3Position = m_pPlayer->GetPosition();
+
 				xmf3Position.x += ((nBullet % 5) - 2) * 22.0f;
 				xmf3Position.z += ((nBullet / 5) == 0) ? -16.0f : 16.0f;
 				xmf3Position.y -= 20.0f;
+
 				m_ppUltimateBulletObjects[nBullet]->SetPosition(xmf3Position);
 				m_bUltimateBulletActive[nBullet] = true;
 			}
 
 			bool bAnyBulletAlive = false;
+
+			// 활성화된 궁극기 탄환은 아래로 낙하시킨 뒤 지형/건물 충돌 검사
 			for (int i = 0; i < 10; i++)
 			{
 				if (!m_bUltimateBulletActive[i] || !m_ppUltimateBulletObjects[i]) continue;
+
 				bAnyBulletAlive = true;
 				XMFLOAT3 xmf3Bullet = m_ppUltimateBulletObjects[i]->GetPosition();
 				xmf3Bullet.y -= 430.0f * fTimeElapsed;
+
 				m_ppUltimateBulletObjects[i]->SetPosition(xmf3Bullet);
 
 				float fGround = (m_pTerrain) ? m_pTerrain->GetHeight(xmf3Bullet.x, xmf3Bullet.z) : 0.0f;
+
 				if (xmf3Bullet.y <= (fGround + 2.0f))
 				{
 					m_ppUltimateBulletObjects[i]->SetPosition(0.0f, -10000.0f, 0.0f);
@@ -1195,6 +1213,7 @@ void CScene::AnimateObjects(float fTimeElapsed)
 			}
 		}
 	}
+	// 폭탄은 한 번에 하나만 활성화
 	if (m_bBombActive && m_pBomb)
 	{
 		XMFLOAT3 xmf3Bomb = m_pBomb->GetPosition();
@@ -1208,6 +1227,7 @@ void CScene::AnimateObjects(float fTimeElapsed)
 			m_bBombActive = false;
 		}
 
+		// 건물들과 폭탄 충돌 검사
 		for (int i = 0; i < 16; i++)
 		{
 			if (!m_bHouseActive[i]) continue;
@@ -1232,6 +1252,7 @@ void CScene::AnimateObjects(float fTimeElapsed)
 		}
 	}
 
+	// 폭발 파편은 시간이 끝나면 화면 밖으로 보냄
 	for (int i = 0; i < 16; i++)
 	{
 		if (m_pfExplosionTime[i] > 0.0f)
@@ -1248,6 +1269,7 @@ void CScene::AnimateObjects(float fTimeElapsed)
 		}
 	}
 
+	// 게임이 끝난 순간 남은 코인 큐브 색을 결과 상태에 맞게 바꿈
 	if (m_bGameClear || m_bGameOver)
 	{
 		m_fGameEndBlink += fTimeElapsed;
@@ -1255,8 +1277,11 @@ void CScene::AnimateObjects(float fTimeElapsed)
 		for (int i = 0; i < 10; i++) if (m_ppCoinObjects[i]) m_ppCoinObjects[i]->SetColor(xmf4Color);
 	}
 
+	// 월드 변환 행렬 갱신
 	for (int i = 0; i < m_nGameObjects; i++) m_ppGameObjects[i]->UpdateTransform(NULL);
+
 	if (m_pBomb) m_pBomb->UpdateTransform(NULL);
+
 	for (int i = 0; i < 10; i++) if (m_ppUltimateBulletObjects[i]) m_ppUltimateBulletObjects[i]->UpdateTransform(NULL);
 	for (int i = 0; i < 10; i++) if (m_ppUltimateGaugeObjects[i]) m_ppUltimateGaugeObjects[i]->UpdateTransform(NULL);
 	for (int i = 0; i < 10; i++) if (m_ppCoinObjects[i]) m_ppCoinObjects[i]->UpdateTransform(NULL);
